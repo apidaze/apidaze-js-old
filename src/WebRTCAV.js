@@ -372,14 +372,14 @@
       webRTC.style.display = "none";
       webRTC.style.width = "100px";
       webRTC.style.height = "75px";
-      webRTC.style.boder = "1px solid black";
+      webRTC.style.border = "1px solid black";
       webRTC.muted = "true";
       webRTC.id = "_apidaze-av-webrtc-local-" + (WebRTCAVCount++);
     } else {
       webRTC.style.display = "none";
       webRTC.style.width = "133";
       webRTC.style.height = "100px";
-      webRTC.style.boder = "1px solid black";
+      webRTC.style.border = "1px solid black";
       var length = this.remoteContainers.push(streamid);
       console.log(LOG_PREFIX + "New member added to remote containers (" + length + " members now).");
       webRTC.id = "_apidaze-av-webrtc-remote-" + length;
