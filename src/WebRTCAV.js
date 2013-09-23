@@ -369,11 +369,14 @@
     var webRTC = document.createElement("video");
    
     if (type === "local") {
+      webRTC.style.display = "none";
       webRTC.style.width = "100px";
       webRTC.style.height = "75px";
       webRTC.style.boder = "1px solid black";
+      webRTC.muted = "true";
       webRTC.id = "_apidaze-av-webrtc-local-" + (WebRTCAVCount++);
     } else {
+      webRTC.style.display = "none";
       webRTC.style.width = "133";
       webRTC.style.height = "100px";
       webRTC.style.boder = "1px solid black";
