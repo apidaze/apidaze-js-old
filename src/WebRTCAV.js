@@ -186,41 +186,52 @@
 
   WebRTCAV.prototype.call = function(dest, listeners) {
     this.bind(listeners);
-
-    if (APIdaze.WebRTC.isSupported !== true) {
-      throw new APIdaze.Exceptions.InitError("WebRTC not supported here");
-    }
-
     var tmp = {};
-    tmp['command'] = "dial";
-    tmp['number'] = dest;
-    tmp['type'] = "offer";
-    tmp['sdp'] = this.peerConnection.localDescription.sdp;
-    var message = JSON.stringify(tmp);
+    var apiKey = this.configuration['apiKey'];
+
+    try {
+      if (APIdaze.WebRTC.isSupported !== true) {
+        throw new APIdaze.Exceptions.InitError("WebRTC not supported here");
+      }
+
+      if (apiKey === null || apiKey === '' || typeof apiKey === "undefined") {
+        throw new APIdaze.Exceptions.InitError("API key is empty");
+      }
+      
+      tmp['command'] = "dial";
+      tmp['apiKey'] = apiKey;
+      tmp['userKeys'] = dest;
+      tmp['userKeys']['apiKey'] = tmp['apiKey'];
+      tmp['type'] = "offer";
+      tmp['sdp'] = this.peerConnection.localDescription.sdp;
+      var message = JSON.stringify(tmp);
     
-    this.sendMessage(message);
+      this.sendMessage(message);
+    } catch (e) {
+      console.log(LOG_PREFIX + "Exception received : " + e.message);
+    }
   };
 
-  WebRTCAV.prototype.joinroom = function(dest, identifier, listeners) {
+  WebRTCAV.prototype.joinroom = function(dest, listeners) {
     if (APIdaze.WebRTC.isSupported !== true) {
       throw new APIdaze.Exceptions.InitError("WebRTC not supported here");
     }
 
+    var apiKey = this.configuration['apiKey'];
     var tmp = {};
     tmp['command'] = "joinroom";
-    if (!identifier || identifier === "") {
-      tmp['identifier'] = "" ;
-    } else {
-      tmp['identifier'] = identifier;
-    }
-    tmp['roomname'] = dest;
+    tmp['apiKey'] = apiKey;
+    tmp['roomname'] = dest['roomName'];
+    tmp['identifier'] = dest['nickName'];
+    tmp['userKeys'] = dest;
+    tmp['userKeys']['apiKey'] = tmp['apiKey'];
     tmp['type'] = "offer";
     tmp['sdp'] = this.peerConnection.localDescription.sdp;
     var message = JSON.stringify(tmp);
     
     this.sendMessage(message);
 
-    return this.room = new APIdaze.ConferenceRoom(this, dest, identifier, listeners);
+    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomName'], tmp['identifier'], listeners);
   };
 
   WebRTCAV.prototype.getUserMedia = function(options) {
