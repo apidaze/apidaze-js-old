@@ -76,11 +76,9 @@
         break;
       case "flash":
       case "auto":
-        this.bind(listeners);
         this.flashAudio.call(params, listeners);
         return this.flashAudio;
       default:
-        this.bind(listeners);
         this.flashAudio.call(params, listeners);
         return this.flashAudio;
     }

@@ -33,7 +33,7 @@
     },
     onCallState: function(domid, sid, state) {
       var domidstr = domid.toString();
-      console.log(LOG_PREFIX + "APIdaze.CLIENT.FlashAudio.EI.onCallState called domid : " + domid);
+      console.log(LOG_PREFIX + "APIdaze.CLIENT.FlashAudio.EI.onCallState called domid : " + domid + " data : " + state);
       try {
         console.log(LOG_PREFIX + "Flash ID : " + domidstr.slice(0,domidstr.length-4));
         document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "callstate", data:state});
@@ -84,6 +84,8 @@
     this.callid = "";
     var swfurl = APIdaze.swfurl;
     var rtmp_url = APIdaze.rtmpurl;
+    this.configuration = {};
+    this.callobj = null;                // Call object instantiated by this.call
 
     APIdaze.EventTarget.call(this);
 
@@ -119,7 +121,7 @@
         this.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_NOTREADY;
         this.client.fire({type: "disconnected", data: "none"});
       },
-      "onCallstate": function(event){
+/*      "onCallstate": function(event){
         console.log(LOG_PREFIX + "callstate type : " + event.type);
         console.log(LOG_PREFIX + "callstate data : " + event.data);
         this.client.fire({type: "callstate", data: event.data});
@@ -131,7 +133,7 @@
       "onAnswered": function(event){
         console.log(LOG_PREFIX + "Call answered");
         this.client.fire(event);
-      },  
+      },  */
       "onHangup": function(event){
         console.log(LOG_PREFIX + "hangup type : " + event.type); 
         console.log(LOG_PREFIX + "hangup data : " + event.data);
@@ -221,17 +223,18 @@
           break;
         case "callstate":
           switch (event.data) {
-            case "RINGING":
-              this.flashAudio.fire({type:"ringing", data:"none"});
+            case "ringing":
+              flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"ringing"});
               break;
             case "ACTIVE":
-              this.flashAudio.fire({type:"answered", data:"none"});
+              flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"answered"});
               break;
             default:
               break;
           }
           break;
         case "hangup":
+          this.callobj.processEvent({type:"channel", info:"hangup"});
           this.flashAudio.fire({type:"hangup", data:event.data});
           break;
         default:
@@ -277,17 +280,25 @@
   };
 
   FlashAudio.prototype.call = function(params, listeners) {
-    var _listeners = listeners;
-    console.log(LOG_PREFIX + _listeners);
+    var apiKey = this.configuration['apiKey'];
+
     console.log(LOG_PREFIX + JSON.stringify(params));
 //    console.log(LOG_PREFIX + params.toString());
 
     try {
+      if (apiKey === null || apiKey === '' || typeof apiKey === "undefined") {
+        throw new APIdaze.Exceptions.InitError("API key is empty");
+      }
+
+      params['apiKey'] = apiKey;
+      
       if (this.$swfElem.isMuted()) {
         console.log(LOG_PREFIX + "Microphone muted");
         this.$swfElem.showPrivacy();
       }
       this.$swfElem.makeCall(JSON.stringify(params), null, null);
+
+      return this.callobj = new APIdaze.Call(this, listeners);
     } catch(error) {
       console.log(LOG_PREFIX + "Error : " + error.message);
     }
