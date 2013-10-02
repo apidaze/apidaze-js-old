@@ -10,6 +10,7 @@ module.exports = function(grunt) {
     'src/FlashAudio.js',
     'src/WebRTCAV.js',
     'src/ConferenceRoom.js',
+    'src/Call.js',
     'src/CLIENT.js'
   ];
 

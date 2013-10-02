@@ -18,6 +18,7 @@
     this.configuration = {};
     this.callid = "";
     this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
+    this.callobj = null;                // Call object instantiated by this.call
     this.socket = {};
     this.status = CONSTANTS.STATUS_INIT;
 
@@ -40,19 +41,6 @@
         console.log(LOG_PREFIX + "WebSocket closed");
         this.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_NOTREADY;
         this.client.fire({type: "disconnected", data: event.data});
-      },
-      "onRinging": function(event){
-        console.log(LOG_PREFIX + "Call is ringing");
-        this.client.fire(event);
-      },  
-      "onAnswered": function(event){
-        console.log(LOG_PREFIX + "Call answered");
-        this.client.fire(event);
-      },  
-      "onHangup": function(event){
-        console.log(LOG_PREFIX + "hangup type : " + event.type); 
-        console.log(LOG_PREFIX + "hangup data : " + event.data);
-        this.client.fire({type: "hangup", data: event.data});
       }
     });
     if (client.configuration.debug === true) {
@@ -122,6 +110,12 @@
     if (event.type.match("^confbridge")) {
       // Pass event to the ConferenceRoom object
       this.room.processEvent(event);
+      return;
+    }
+
+    if (event.type.match("^channel")) {
+      // Pass event to the Call object
+      this.callobj.processEvent(event);
       return;
     }
 
@@ -210,6 +204,8 @@
     } catch (e) {
       console.log(LOG_PREFIX + "Exception received : " + e.message);
     }
+
+    return this.callobj = new APIdaze.Call(this, listeners);
   };
 
   WebRTCAV.prototype.joinroom = function(dest, listeners) {
