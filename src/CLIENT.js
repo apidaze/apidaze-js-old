@@ -72,15 +72,12 @@
 
     switch(this.configuration.type) {
       case "webrtc":
-        this.webRTCAV.call(params, listeners);
-        break;
+        return this.webRTCAV.call(params, listeners);
       case "flash":
       case "auto":
-        this.flashAudio.call(params, listeners);
-        return this.flashAudio;
+        return this.flashAudio.call(params, listeners);
       default:
-        this.flashAudio.call(params, listeners);
-        return this.flashAudio;
+        return this.flashAudio.call(params, listeners);
     }
   };
 
