@@ -28,7 +28,7 @@
      * event example : {"event": {"type": "channel", "info": "ringing"}}
      * We build a new event out of this one with a single type field
      */
-    var newevent = {'type': event.info};
+    var newevent = {type: event.info};
 
     this.fire(newevent);
   };
