@@ -120,28 +120,6 @@
         console.log(LOG_PREFIX + "disconnected");
         this.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_NOTREADY;
         this.client.fire({type: "disconnected", data: "none"});
-      },
-/*      "onCallstate": function(event){
-        console.log(LOG_PREFIX + "callstate type : " + event.type);
-        console.log(LOG_PREFIX + "callstate data : " + event.data);
-        this.client.fire({type: "callstate", data: event.data});
-      },  
-      "onRinging": function(event){
-        console.log(LOG_PREFIX + "Call is ringing");
-        this.client.fire(event);
-      },  
-      "onAnswered": function(event){
-        console.log(LOG_PREFIX + "Call answered");
-        this.client.fire(event);
-      },  */
-      "onHangup": function(event){
-        console.log(LOG_PREFIX + "hangup type : " + event.type); 
-        console.log(LOG_PREFIX + "hangup data : " + event.data);
-        this.client.fire({type: "hangup", data: event.data});
-      },
-      "onMakeCall": function(event){
-        console.log(LOG_PREFIX + "makeCall returned  type : " + event.type + " - data : " + event.data); 
-        this.callid = event.data;
       }
     });
     if (client.configuration.debug === true) {
@@ -167,7 +145,6 @@
                       {allowscriptaccess: "always"},
                       {id: this.configuration.containerId + "-swf", name: this.configuration.containerId + "-swf"},
                       this.onloaded);
-    //APIdaze.CLIENT.onConnected = function(sid, objectid) {console.log(LOG_PREFIX + "RTMP connection established - SID : " + sid + " - objectid : " + objectid);};
 
   };
 
@@ -229,13 +206,12 @@
             case "answered":
               flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"answered"});
               break;
+            case "hangup":
+              flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"hangup"});
+              break;
             default:
               break;
           }
-          break;
-        case "hangup":
-          this.callobj.processEvent({type:"channel", info:"hangup"});
-          this.flashAudio.fire({type:"hangup", data:event.data});
           break;
         default:
           break;
