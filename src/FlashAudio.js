@@ -226,7 +226,7 @@
             case "ringing":
               flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"ringing"});
               break;
-            case "ACTIVE":
+            case "answered":
               flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"answered"});
               break;
             default:
