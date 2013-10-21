@@ -25,10 +25,14 @@
     console.log(LOG_PREFIX + "Hanging up call");
     switch(this.client.configuration.type) {
       case "webrtc":
+        var tmp = {};
+        tmp['command'] = "hangup";
+        tmp['apiKey'] = this.client.configuration['apiKey'];
+        tmp['userKeys'] = {"command":"hangup"};
+        this.client.sendMessage(JSON.stringify(tmp));
         break;
       case "flash":
         try {
-          console.log(LOG_PREFIX + "Notifying Flash");
           this.client.$swfElem.hangup(this.client.callid);
         } catch(error) {
           console.log(LOG_PREFIX + "Error : " + error.message);
