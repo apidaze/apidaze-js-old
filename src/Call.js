@@ -21,6 +21,24 @@
     this.client.sendMessage(message);
   };
 
+  Call.prototype.hangup = function() {
+    console.log(LOG_PREFIX + "Hanging up call");
+    switch(this.client.configuration.type) {
+      case "webrtc":
+        break;
+      case "flash":
+        try {
+          console.log(LOG_PREFIX + "Notifying Flash");
+          this.client.$swfElem.hangup(this.client.callid);
+        } catch(error) {
+          console.log(LOG_PREFIX + "Error : " + error.message);
+        }
+        break;
+      default:
+        throw new APIdaze.Exceptions.ConfigurationError(this.client.configuration.type);
+    }
+  };
+
   Call.prototype.processEvent = function(event) {
     console.log(LOG_PREFIX + "Received event");
   

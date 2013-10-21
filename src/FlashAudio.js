@@ -288,14 +288,6 @@
     }
   };
 
-  FlashAudio.prototype.hangup = function() {
-    try {
-      this.$swfElem.hangup(this.callid);
-    } catch(error) {
-      console.log(LOG_PREFIX + "Error : " + error.message);
-    }
-  };
-
   FlashAudio.prototype.showPersmissionBox = function() {
 
   };
