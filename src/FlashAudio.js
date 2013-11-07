@@ -296,6 +296,10 @@
 
   };
 
+  FlashAudio.prototype.isMuted = function() {
+    return this.$swfElem.isMuted();
+  };
+
   FlashAudio.EI = EI;
   APIdaze.FlashAudio = FlashAudio;
 
