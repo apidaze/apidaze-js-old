@@ -138,6 +138,7 @@ module.exports = function(grunt) {
   // Default task(s).
   //grunt.registerTask('default', ['concat', 'jshint', 'qunit', 'clean', 'uglify']);
   grunt.registerTask('default', ['concat:tmpdist', 'jshint', 'concat:withlibs', 'clean', 'qunit', 'uglify:dist']);
+  grunt.registerTask('pushdist', ['copy:dist']);
   grunt.registerTask('dev', ['concat:tmpdev', 'jshint:dev', 'concat:devwithlibs', 'clean', 'qunit', 'uglify:dev']);
   grunt.registerTask('pushdev', ['copy:dev']);
 
