@@ -129,6 +129,15 @@
     }
   };
 
+  CLIENT.prototype.isMuted = function() {
+    switch(this.configuration.type) {
+      case "flash":
+        return this.flashAudio.isMuted();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function isMuted not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
   CLIENT.prototype.WebRTCAudio = function() {
     console.log(LOG_PREFIX + "Starting WebRTCAudio");
   };

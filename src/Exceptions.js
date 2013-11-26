@@ -13,6 +13,16 @@
       exception.prototype = new Error();
       return exception;
     }()), 
+    ClientError: (function(){
+      var exception = function(message) {
+        this.code = 1;
+        this.name = "CLIENT_ERROR";
+        this.message = message;
+      };
+
+      exception.prototype = new Error();
+      return exception;
+    }()), 
     CallError: (function(){
       var exception = function(message) {
         this.code = 1;
