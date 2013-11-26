@@ -34,7 +34,11 @@
 
     switch (this.configuration.type) {
       case "webrtc":
-        this.webRTCAV = new APIdaze.WebRTCAV(this);
+        try {
+          this.webRTCAV = new APIdaze.WebRTCAV(this);
+        } catch(error) {
+          console.log(LOG_PREFIX + "Error : " + error.toString());
+        }
         break;
       case "flash":
       case "auto":

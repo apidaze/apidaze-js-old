@@ -271,8 +271,8 @@
       }, 
       // Function called on failure
       function(error) {
-        console.log(LOG_PREFIX + "getUsermedia failed with error : " + error);
-        throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia failed with error : " + error.message);
+        console.log(LOG_PREFIX + "getUsermedia failed with error.name : " + error.name + " - error.message : " + error.message + " - error.constraintName : " + error.constraintName);
+        plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
       }
     );
   };
