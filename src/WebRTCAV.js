@@ -116,6 +116,20 @@
     if (event.type.match("^channel")) {
       // Pass event to the Call object
       this.callobj.processEvent(event);
+      
+      if (event.info === 'hangup') {
+        /** Grab hangup from the Gateway so we can remove the corresponding stream */
+        console.log(LOG_PREFIX + "peerConnection Remote Description : " + this.peerConnection.remoteDescription.sdp);
+        var sdp = this.peerConnection.remoteDescription.sdp.replace(/m=audio\s+\d+\s+RTP\/SAVPF/, "m=audio 0 RTP\/SAVPF");
+        var sdpbis = sdp.replace(/a=rtpmap.*\n/, "");
+        console.log(LOG_PREFIX + "peerConnection Remote Description to be updated: " + sdpbis);
+        this.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:sdp}));
+
+        /** For now, we don't do anything, but need need to figure out
+         * a way to close the MediaStream on our PeerConnection here */
+//        this.peerConnection.set(sessionDescription); 
+      }
+
       return;
     }
 
