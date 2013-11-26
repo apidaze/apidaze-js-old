@@ -29,7 +29,7 @@ module.exports = function(grunt) {
 }(window));\n\n'
     },
     clean: {
-      files: ['dist/<%= pkg.name %>-<%= pkg.version %>.tmp.js']
+      files: ['dist/<%= pkg.name %>-<%= pkg.version %>.tmp.js', 'dist/<%= pkg.name %>-<%= pkg.version %>-dev.tmp.js']
     },
     concat: {
       tmpdist: {
@@ -43,9 +43,31 @@ module.exports = function(grunt) {
         },
         nonull: true
       },
+      tmpdev: {
+        src: srcFiles,
+        dest: 'dist/<%= pkg.name %>-<%= pkg.version %>-dev.tmp.js',
+        options: {
+          banner: '<%= meta.banner %>',
+          separator: '\n\n\n',
+          footer: '<%= meta.footer %>',
+          process: true
+        },
+        nonull: true
+      },
       withlibs: {
         src: ['src/swfobject.js',srcFiles],
         dest: 'dist/<%= pkg.name %>-<%= pkg.version %>.js',
+        options: {
+          banner: '<%= meta.banner %>',
+          separator: '\n\n\n',
+          footer: '<%= meta.footer %>',
+          process: true
+        },
+        nonull: true
+      },
+      devwithlibs: {
+        src: ['src/swfobject.js',srcFiles],
+        dest: 'dist/<%= pkg.name %>-<%= pkg.version %>-dev.js',
         options: {
           banner: '<%= meta.banner %>',
           separator: '\n\n\n',
@@ -68,6 +90,12 @@ module.exports = function(grunt) {
         },
         src: ['dist/<%= pkg.name %>-<%= pkg.version %>.tmp.js']
       },
+      dev: {
+        options: {
+          jshintrc: 'dist/.jshintrc'
+        },
+        src: ['dist/<%= pkg.name %>-<%= pkg.version %>-dev.tmp.js']
+      },
     },
     qunit: {
       files: ['test/*.html']
@@ -78,7 +106,23 @@ module.exports = function(grunt) {
       },
       dist: {
         src: 'dist/<%= pkg.name %>-<%= pkg.version %>.js',
-        dest: 'dist/<%= pkg.name %>.min.js'
+        dest: 'dist/<%= pkg.name %>-<%= pkg.version %>.min.js'
+      },
+      dev: {
+        src: 'dist/<%= pkg.name %>-<%= pkg.version %>-dev.js',
+        dest: 'dist/<%= pkg.name %><%= pkg.version %>-dev.min.js'
+      }
+    },
+    copy: {
+      dist: {
+        files: [
+          {expand: true, cwd: 'dist/', src: ['<%= pkg.name %>-<%= pkg.version %>.js', 'dist/<%= pkg.name %>-<%= pkg.version %>.min.js'], dest: '/var/www/html/releases/', filter: 'isFile'}
+        ]
+      },
+      dev: {
+        files: [
+          {expand: true, cwd: 'dist/', src: ['<%= pkg.name %>-<%= pkg.version %>-dev.js', '<%= pkg.name %><%= pkg.version %>-dev.min.js'], dest: '/var/www/html/releases/', filter: 'isFile'}
+        ]
       }
     }
   });
@@ -89,9 +133,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-qunit');
   grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-contrib-copy');
 
   // Default task(s).
   //grunt.registerTask('default', ['concat', 'jshint', 'qunit', 'clean', 'uglify']);
-  grunt.registerTask('default', ['concat:tmpdist', 'jshint', 'concat:withlibs', 'clean', 'qunit', 'uglify']);
+  grunt.registerTask('default', ['concat:tmpdist', 'jshint', 'concat:withlibs', 'clean', 'qunit', 'uglify:dist']);
+  grunt.registerTask('dev', ['concat:tmpdev', 'jshint:dev', 'concat:devwithlibs', 'clean', 'qunit', 'uglify:dev']);
+  grunt.registerTask('pushdev', ['copy:dev']);
 
 };
