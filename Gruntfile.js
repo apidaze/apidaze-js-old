@@ -121,7 +121,7 @@ module.exports = function(grunt) {
       },
       dev: {
         files: [
-          {expand: true, cwd: 'dist/', src: ['<%= pkg.name %>-<%= pkg.version %>-dev.js', '<%= pkg.name %><%= pkg.version %>-dev.min.js'], dest: '/var/www/html/releases/', filter: 'isFile'}
+          {expand: true, cwd: 'dist/', src: ['<%= pkg.name %>-<%= pkg.version %>-dev.js', '<%= pkg.name %>-<%= pkg.version %>-dev.min.js'], dest: '/var/www/html/releases/', filter: 'isFile'}
         ]
       }
     }
