@@ -41,6 +41,24 @@
         console.log(LOG_PREFIX + "Error : " + error.message);
       }
     },
+    onMessage: function(domid, sid, message) {
+      var domidstr = domid.toString();
+      console.log(LOG_PREFIX + "APIdaze.CLIENT.FlashAudio.EI.onMessage called domid : " + domid + " data : " + message);
+      try {
+        console.log(LOG_PREFIX + "Flash ID : " + domidstr.slice(0,domidstr.length-4));
+        if (message === "talkdetected") {
+          /** Special case where Asterisk sends a "talkdetected" string */
+          document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "callstate", data:"talkdetected"});
+        } else if (message === "notalkdetected") {
+          /** Special case where Asterisk sends a "notalkdetected" string */
+          document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "callstate", data:"notalkdetected"});
+        } else {
+          document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "message", data:message});
+        }
+      } catch(error) {
+        console.log(LOG_PREFIX + "Error : " + error.message);
+      }
+    },
     onEvent: function(domid, message) {
       var domidstr = domid.toString();
       try {
@@ -82,8 +100,8 @@
   var FlashAudio = function(client) {
     this.client = client;
     this.callid = "";
-    var swfurl = APIdaze.swfurl;
-    var rtmp_url = APIdaze.rtmpurl;
+    var swfurl = client.configuration.debug ? APIdaze.dev_swfurl : APIdaze.swfurl;
+    var rtmp_url = client.configuration.debug ? APIdaze.dev_rtmpurl : APIdaze.rtmpurl;
     this.configuration = {};
     this.callobj = null;                // Call object instantiated by this.call
 
@@ -91,8 +109,8 @@
 
     this.configuration = APIdaze.Utils.extend({containerId: "", flashmode: "rtmp"}, client.configuration);
     if (this.configuration.flashmode === "rtmfp") {
-      swfurl = APIdaze.swfurl_rtmfp;
-      rtmp_url = APIdaze.rtmfpurl;
+      swfurl = this.configuration.debug ? APIdaze.dev_swfurl_rtmfp : APIdaze.swfurl_rtmfp;
+      rtmp_url = this.configuration.debug ? APIdaze.dev_rtmfpurl : APIdaze.rtmfpurl;
       LOG_PREFIX += ' (RTMFP/UDP) | ';
     } else {
       LOG_PREFIX += ' (RTMP/TCP) | ';
@@ -209,9 +227,18 @@
             case "hangup":
               flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"hangup"});
               break;
+            case "talkdetected":
+              flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"talkdetected"});
+              break;
+            case "notalkdetected":
+              flashDomElem.flashAudio.callobj.processEvent({type:"channel", info:"notalkdetected"});
+              break;
             default:
               break;
           }
+          break;
+        case "message":
+          flashDomElem.flashAudio.callobj.processEvent({type:"message", info:event.data});
           break;
         default:
           break;
