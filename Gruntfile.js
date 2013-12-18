@@ -110,7 +110,7 @@ module.exports = function(grunt) {
       },
       dev: {
         src: 'dist/<%= pkg.name %>-<%= pkg.version %>-dev.js',
-        dest: 'dist/<%= pkg.name %><%= pkg.version %>-dev.min.js'
+        dest: 'dist/<%= pkg.name %>-<%= pkg.version %>-dev.min.js'
       }
     },
     copy: {
