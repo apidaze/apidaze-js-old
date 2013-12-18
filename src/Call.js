@@ -44,7 +44,7 @@
   };
 
   Call.prototype.processEvent = function(event) {
-    console.log(LOG_PREFIX + "Received event");
+    console.log(LOG_PREFIX + "Received event with info : " + event.info);
   
     /**
      * event example : {"event": {"type": "channel", "info": "ringing"}}
