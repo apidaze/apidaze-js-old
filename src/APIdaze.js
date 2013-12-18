@@ -35,6 +35,27 @@ var APIdaze = (function() {
     wsurl: {
       get: function(){ return 'ws://' + this.wshostport + '/websocket'; }
     },
+    dev_flashhostport: {
+      get: function(){ return '195.5.246.235:81'; }
+    },
+    dev_wshostport: {
+      get: function(){ return '195.5.246.235:8088'; }
+    },
+    dev_swfurl: {
+      get: function(){ return 'http://' + this.dev_flashhostport + '/rtmp/apidaze.swf'; }
+    },
+    dev_swfurl_rtmfp: {
+      get: function(){ return 'http://' + this.dev_flashhostport + '/rtmfp/apidaze.swf'; }
+    },
+    dev_rtmpurl: {
+      get: function(){ return 'rtmp://195.5.246.235/phone'; }
+    },
+    dev_rtmfpurl: {
+      get: function(){ return 'rtmfp://195.5.246.235/apidaze'; }
+    },
+    dev_wsurl: {
+      get: function(){ return 'ws://' + this.dev_wshostport + '/websocket'; }
+    },
     maxroomparticipants: {
       get: function(){ return 4; }
     }
