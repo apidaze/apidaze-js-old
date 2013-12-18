@@ -21,6 +21,7 @@
     this.callobj = null;                // Call object instantiated by this.call
     this.socket = {};
     this.status = CONSTANTS.STATUS_INIT;
+    this.wsurl = client.configuration.debug ? APIdaze.dev_wsurl : APIdaze.wsurl;
 
     APIdaze.EventTarget.call(this);
 
@@ -55,7 +56,7 @@
     }
 
     try {
-      this.socket = new WebSocket(APIdaze.wsurl + "?apiKey=" + this.configuration.apiKey + "?token=" + this.configuration.token, "webrtc");
+      this.socket = new WebSocket(this.wsurl + "?apiKey=" + this.configuration.apiKey + "?token=" + this.configuration.token, "webrtc");
       this.socket.addEventListener("open", function() {
         plugin.fire({type:"connected", data:"none"});
       });
@@ -93,7 +94,7 @@
         }
       });
     } catch(e) {
-      throw new APIdaze.Exceptions.InitError("Failed to initialize WebSocket to " + APIdaze.wsurl);
+      throw new APIdaze.Exceptions.InitError("Failed to initialize WebSocket to " + this.wsurl);
     }
 
     try {
