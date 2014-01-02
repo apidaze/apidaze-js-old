@@ -119,16 +119,9 @@
       this.callobj.processEvent(event);
       
       if (event.info === 'hangup') {
-        /** Grab hangup from the Gateway so we can remove the corresponding stream */
-        console.log(LOG_PREFIX + "peerConnection Remote Description : " + this.peerConnection.remoteDescription.sdp);
-        var sdp = this.peerConnection.remoteDescription.sdp.replace(/m=audio\s+\d+\s+RTP\/SAVPF/, "m=audio 0 RTP\/SAVPF");
-        var sdpbis = sdp.replace(/a=rtpmap.*\n/, "");
-        console.log(LOG_PREFIX + "peerConnection Remote Description to be updated: " + sdpbis);
-        this.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:sdp}));
-
-        /** For now, we don't do anything, but need need to figure out
-         * a way to close the MediaStream on our PeerConnection here */
-//        this.peerConnection.set(sessionDescription); 
+        /** Grab hangup from the Gateway so we can remove the corresponding PeerConnection */
+        console.log(LOG_PREFIX + "Resetting PeerConnection, deleting it first.");
+        this.resetPeerConnection();
       }
 
       return;
@@ -376,6 +369,17 @@
       console.log(LOG_PREFIX + "Failed to create PeerConnection : " + error.toString());
     }
     console.log(LOG_PREFIX + "PeerConnection offer is created");
+  };
+
+  WebRTCAV.prototype.resetPeerConnection = function() {
+    this.peerConnection.close();
+    this.peerConnection = null;
+
+    try {
+      this.createPeerConnection();
+    } catch(error) {
+      throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "createPeerConnection failed with error : " + error.message);
+    }
   };
 
   WebRTCAV.prototype.createLocalContainer = function() {
