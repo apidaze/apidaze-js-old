@@ -13,6 +13,7 @@
     this.remoteContainers = [];
     this.roomPeerConnections = [];
     this.peerConnection = {};
+    this.videoPeerConnection = {};	// A dedicated PeerConnection for video
     this.localSDP = "";                 // SDP obtained after creating the main RTCPeerConnection
     this.localstream = {};
     this.configuration = {};
