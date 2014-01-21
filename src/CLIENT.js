@@ -13,6 +13,7 @@
     this.configuration = {
       // Default options
       debug: false,
+      sounddetect: false,
       type: "auto",
       apiKey: "none"
     };
@@ -56,6 +57,9 @@
 
   CLIENT.prototype.init = function(config){
     APIdaze.Utils.extend(this.configuration, config);
+    if (this.configuration.sounddetect === "yes" || this.configuration.sounddetect === "true") {
+      this.configuration.sounddetect = true;
+    }
     switch(this.configuration.type) {
       case "webrtc":
         break;

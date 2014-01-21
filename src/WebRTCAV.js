@@ -204,6 +204,7 @@
       tmp['apiKey'] = apiKey;
       tmp['userKeys'] = dest;
       tmp['userKeys']['apiKey'] = tmp['apiKey'];
+      tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
       tmp['type'] = "offer";
       tmp['sdp'] = this.peerConnection.localDescription.sdp;
       var message = JSON.stringify(tmp);
@@ -229,6 +230,7 @@
     tmp['identifier'] = dest['nickName'];
     tmp['userKeys'] = dest;
     tmp['userKeys']['apiKey'] = tmp['apiKey'];
+    tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
     tmp['type'] = "offer";
     tmp['sdp'] = this.peerConnection.localDescription.sdp;
     var message = JSON.stringify(tmp);

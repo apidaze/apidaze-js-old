@@ -285,6 +285,8 @@
   FlashAudio.prototype.call = function(params, listeners) {
     var apiKey = this.configuration['apiKey'];
 
+    params['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
+
     console.log(LOG_PREFIX + JSON.stringify(params));
 //    console.log(LOG_PREFIX + params.toString());
 
