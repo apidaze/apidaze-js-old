@@ -116,7 +116,7 @@ module.exports = function(grunt) {
     copy: {
       dist: {
         files: [
-          {expand: true, cwd: 'dist/', src: ['<%= pkg.name %>-<%= pkg.version %>.js', 'dist/<%= pkg.name %>-<%= pkg.version %>.min.js'], dest: '/var/www/html/releases/', filter: 'isFile'}
+          {expand: true, cwd: 'dist/', src: ['<%= pkg.name %>-<%= pkg.version %>.js', '<%= pkg.name %>-<%= pkg.version %>.min.js'], dest: '/var/www/html/releases/', filter: 'isFile'}
         ]
       },
       dev: {
