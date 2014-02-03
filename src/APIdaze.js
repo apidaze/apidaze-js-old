@@ -15,10 +15,10 @@ var APIdaze = (function() {
       get: function(){ return '<%= pkg.name %>'; }
     },
     flashhostport: {
-      get: function(){ return '94.23.192.150:81'; }
+      get: function(){ return 'ws.apidaze.io:81'; }
     },
     wshostport: {
-      get: function(){ return '94.23.192.150:8088'; }
+      get: function(){ return 'ws.apidaze.io:8088'; }
     },
     swfurl: {
       get: function(){ return 'http://' + this.flashhostport + '/apidaze/apidaze.swf'; }
@@ -27,19 +27,19 @@ var APIdaze = (function() {
       get: function(){ return 'http://' + this.flashhostport + '/rtmfp/apidaze.swf'; }
     },
     rtmpurl: {
-      get: function(){ return 'rtmp://94.23.192.150/phone'; }
+      get: function(){ return 'rtmp://ws.apidaze.io/phone'; }
     },
     rtmfpurl: {
-      get: function(){ return 'rtmfp://94.23.192.150/apidaze'; }
+      get: function(){ return 'rtmfp://ws.apidaze.io/apidaze'; }
     },
     wsurl: {
       get: function(){ return 'ws://' + this.wshostport + '/websocket'; }
     },
     dev_flashhostport: {
-      get: function(){ return '195.5.246.235:81'; }
+      get: function(){ return 'ws.apidaze.io:81'; }
     },
     dev_wshostport: {
-      get: function(){ return '195.5.246.235:8088'; }
+      get: function(){ return 'ws.apidaze.io:8088'; }
     },
     dev_swfurl: {
       get: function(){ return 'http://' + this.dev_flashhostport + '/rtmp/apidaze.swf'; }
@@ -48,10 +48,10 @@ var APIdaze = (function() {
       get: function(){ return 'http://' + this.dev_flashhostport + '/rtmfp/apidaze.swf'; }
     },
     dev_rtmpurl: {
-      get: function(){ return 'rtmp://195.5.246.235/phone'; }
+      get: function(){ return 'rtmp://ws.apidaze.io/phone'; }
     },
     dev_rtmfpurl: {
-      get: function(){ return 'rtmfp://195.5.246.235/apidaze'; }
+      get: function(){ return 'rtmfp://ws.apidaze.io/apidaze'; }
     },
     dev_wsurl: {
       get: function(){ return 'ws://' + this.dev_wshostport + '/websocket'; }
