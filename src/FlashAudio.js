@@ -107,7 +107,7 @@
 
     APIdaze.EventTarget.call(this);
 
-    this.configuration = APIdaze.Utils.extend({containerId: "", flashmode: "rtmp"}, client.configuration);
+    this.configuration = APIdaze.Utils.extend({containerId: "", flashmode: "rtfmp"}, client.configuration);
     if (this.configuration.flashmode === "rtmfp") {
       swfurl = this.configuration.debug ? APIdaze.dev_swfurl_rtmfp : APIdaze.swfurl_rtmfp;
       rtmp_url = this.configuration.debug ? APIdaze.dev_rtmfpurl : APIdaze.rtmfpurl;
