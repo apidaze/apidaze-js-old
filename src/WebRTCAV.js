@@ -13,9 +13,12 @@
     this.remoteContainers = [];
     this.roomPeerConnections = [];
     this.peerConnection = {};
-    this.videoPeerConnection = {};	// A dedicated PeerConnection for video
+    this.videoPeerConnection = {};      // A dedicated PeerConnection for video
+    this.remoteVideoSDP = "";
     this.localSDP = "";                 // SDP obtained after creating the main RTCPeerConnection
+    this.localVideoSDP = "";            // SDP obtained after creating the main Video RTCPeerConnection
     this.localstream = {};
+    this.localVideoStream = {};
     this.configuration = {};
     this.callid = "";
     this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
@@ -28,8 +31,12 @@
 
     var plugin = this;
 
-    this.configuration = APIdaze.Utils.extend({localVideoId: ""}, client.configuration);
+    this.configuration = APIdaze.Utils.extend({localAudioId: "", localVideoId: ""}, client.configuration);
     console.log(LOG_PREFIX + "Starting WebRTC");
+
+    if (this.configuration.localAudioId === "") {
+      this.configuration.localAudioId = this.createLocalContainer();
+    }
 
     if (this.configuration.localVideoId === "") {
       this.configuration.localVideoId = this.createLocalContainer();
@@ -71,6 +78,7 @@
          */
         var json = JSON.parse(event.data);
 
+	console.log(LOG_PREFIX + "S->C : " + event.data);
         if (client.configuration.debug === true) {
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
@@ -83,6 +91,28 @@
           var tmpevent = {type: "confbridgegetvideostream", identifier: json.channel, sdp: json.sdp};
           plugin.processEvent(tmpevent);
            
+        } else if (json.type && json.type === "answer" && json.command === "getVideoStreamReply" && json.sdp) {
+          console.log(LOG_PREFIX + "Got SDP from video MCU : " + json.sdp.replace(/\|/g, "\r\n"));
+          plugin.remoteVideoSDP = json.sdp.replace(/\|/g, "\r\n");
+          plugin.videoPeerConnection.setRemoteDescription(
+              new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:plugin.remoteVideoSDP}),
+                function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
+                function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
+          );
+        } else if (json.type && json.type === "confbridgenewssrc" && json.ssrc) {
+		console.log(LOG_PREFIX + "Got new SSRC for this conference : " + json.ssrc);
+		if (plugin.localVideoSDP.sdp.indexOf(json.ssrc) === -1) {
+			console.log(LOG_PREFIX + "Looks like someone is publishing video in this room");  
+			plugin.remoteVideoSDP = plugin.remoteVideoSDP.replace(/1874557016/g, json.ssrc);
+			console.log(LOG_PREFIX + "Remote SDP : " + plugin.remoteVideoSDP);  
+			plugin.videoPeerConnection.setRemoteDescription(
+					new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:plugin.remoteVideoSDP}),
+					function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
+					function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
+					);
+		} else {
+			console.log(LOG_PREFIX + "Our SSRC, ignoring");
+		}
         } else if (json.type && json.type === "answer" && json.sdp) {
           console.log(LOG_PREFIX + "json.type : " + json.type);
           console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
@@ -116,15 +146,18 @@
     }
 
     if (event.type.match("^channel")) {
-      // Pass event to the Call object
-      this.callobj.processEvent(event);
-      
+      console.log(LOG_PREFIX + "Received event with info : " + event.info);
       if (event.info === 'hangup') {
         /** Grab hangup from the Gateway so we can remove the corresponding PeerConnection */
         console.log(LOG_PREFIX + "Resetting PeerConnection, deleting it first.");
-        this.resetPeerConnection();
+       // this.resetPeerConnection();
       }
 
+      console.log(LOG_PREFIX + "Unknown channel event : " + JSON.stringify(event));
+
+      // Pass event to the Call object
+      this.callobj.processEvent(event);
+      
       return;
     }
 
@@ -158,6 +191,7 @@
          */
         var json = JSON.parse(event.data);
 
+	console.log(LOG_PREFIX + "S->C : " + event.data);
         if (plugin.client.configuration.debug === true) {
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
@@ -238,9 +272,28 @@
     
     this.sendMessage(message);
 
+    tmp = {};
+    tmp['command'] = "getvideostream";
+    tmp['apiKey'] = apiKey;
+    tmp['roomname'] = dest['roomName'];
+    tmp['identifier'] = dest['nickName'];
+    tmp['channel'] = dest['nickName'];
+    tmp['userKeys'] = dest;
+    tmp['userKeys']['apiKey'] = tmp['apiKey'];
+    tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
+    tmp['type'] = "offer";
+    tmp['sdp'] = this.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|") + "a=apidazeroomname:" + dest['roomName'];
+    message = JSON.stringify(tmp);
+
+    this.sendMessage(message);
+
     return this.room = new APIdaze.ConferenceRoom(this, tmp['roomName'], tmp['identifier'], listeners);
   };
 
+  /** 
+   * We call getUserMedia twice :
+   * first to get the microphone stream, then the local video stream
+   */
   WebRTCAV.prototype.getUserMedia = function(options) {
     var plugin = this;
     var opts = APIdaze.Utils.extend({audio: true, video: false}, options);
@@ -248,7 +301,7 @@
       // Function called on success
       function(stream) {
         try {
-          var container = document.querySelector("#"+ plugin.configuration.localVideoId);
+          var container = document.querySelector("#"+ plugin.configuration.localAudioId);
 
           container.src = APIdaze.WebRTC.URL.createObjectURL(stream);
           plugin.localstream = stream;
@@ -272,13 +325,149 @@
         plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
       }
     );
+
+    opts.audio = false;
+    opts.video = true;
+    APIdaze.WebRTC.getUserMedia.call(navigator, opts, 
+      // Function called on success
+      function(stream) {
+        try {
+          var container = document.querySelector("#"+ plugin.configuration.localVideoId);
+
+          container.src = APIdaze.WebRTC.URL.createObjectURL(stream);
+          plugin.localVideoStream = stream;
+          console.log(LOG_PREFIX + "getUserMedia (video) called successfully");
+        } catch(error) {
+          throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia (video) failed with error : " + error.message);
+        }
+        
+        try {
+          plugin.createVideoPeerConnection();
+        } catch(error) {
+          throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "createPeerConnection failed with error : " + error.message);
+        }
+
+      }, 
+      // Function called on failure
+      function(error) {
+        console.log(LOG_PREFIX + "getUsermedia (video) failed with error.name : " + error.name + " - error.message : " + error.message + " - error.constraintName : " + error.constraintName);
+        plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
+      }
+    );
+  };
+
+  WebRTCAV.prototype.createVideoPeerConnection = function() {
+    var plugin = this;
+//    var pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
+    var pc_config = {"iceServers": [{"url": "stun:173.194.78.127:19302"}]};
+    var constraints = { "optional": [],
+                        "mandatory":  {
+                                        'OfferToReceiveAudio':true, 
+                                        'OfferToReceiveVideo':true,
+                                        "MozDontOfferDataChannel": true
+                                      }
+                      };
+
+    console.log(LOG_PREFIX + "Creating VideoPeerConnection...");
+    try {
+      this.videoPeerConnection = new APIdaze.WebRTC.RTCPeerConnection(pc_config, {'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true}});
+
+      /**
+      * Create various callback functions, the most important
+      * being onicecandidate as we send our SDP offer once
+      * all candidates are gathered.
+      */
+      this.videoPeerConnection.onicecandidate = function(event) {
+        if (event.candidate) {
+          console.log(LOG_PREFIX + "ICE candidate received: " + event.candidate.candidate);
+        } else {
+          console.log(LOG_PREFIX + "No more ICE candidate");
+          plugin.status = plugin.status * CONSTANTS.STATUS_CANDIDATES_RECEIVED;
+          plugin.client.fire({type: "ready", data: "none"});
+        }
+      };
+
+      this.videoPeerConnection.onopen = function() {
+        console.log(LOG_PREFIX + "VideoPeerConnection open");
+      };
+
+      this.videoPeerConnection.onstatechange = function() {
+        console.log(LOG_PREFIX + "VideoPeerConnection state changed");
+      };
+
+      this.videoPeerConnection.onremovestream = function(stream) {
+        console.log(LOG_PREFIX + "Video PeerConnection stream removed : " + stream);
+      };
+
+      this.videoPeerConnection.onaddstream = function(mediaStreamEvent) {
+        console.log(LOG_PREFIX + "Video PeerConnection stream added : " + mediaStreamEvent.stream.id);
+        var domId = plugin.createRemoteContainer(mediaStreamEvent.stream.id);
+        document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
+
+        /**
+         * Add video tracks to new displays
+         */
+        mediaStreamEvent.stream.onaddtrack = function(mediaTrackEvent) {
+          console.log(LOG_PREFIX + "Video PeerConnection track added : " + mediaTrackEvent.track.id);
+
+          /**
+           * Create new MediaStream object from the new video track
+           * and attach it to a new container
+           * */
+          var stream = new APIdaze.WebRTC.MediaStream([mediaTrackEvent.track]);
+
+          domId = plugin.createRemoteContainer(mediaTrackEvent.track.id);
+          document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(stream);
+        };
+      };
+      console.log(LOG_PREFIX + "Listeners added");
+
+      if (this.status | CONSTANTS.STATUS_LOCALSTREAM_ATTACHED) {
+        this.videoPeerConnection.addStream(this.localVideoStream);
+      } else {
+        console.log(LOG_PREFIX + "Localstream not ready, cannot create Video PeerConnection");
+        throw new APIdaze.Exceptions.InitError("WebRTC localstream not ready");
+      }
+
+      // temporary measure to remove Moz* constraints in Chrome
+      if (window.navigator.webkitGetUserMedia) {
+        for (var prop in constraints.mandatory) {
+          if (prop.indexOf("Moz") !== -1) {
+            delete constraints.mandatory[prop];
+          }
+        }
+      }   
+
+      this.videoPeerConnection.createOffer(
+                                      function(sessionDescription) {
+                                         // Function called on success
+                                        plugin.videoPeerConnection.setLocalDescription(sessionDescription); 
+                                        // Save this SDP
+                                        plugin.localVideoSDP = sessionDescription;
+					console.log(LOG_PREFIX + "-------------- Video SDP -----------------");
+					console.log(LOG_PREFIX + sessionDescription.sdp);
+                                      },
+                                      function(error) {
+                                        // Function called on failure
+                                        console.log(LOG_PREFIX + "Failed to create offer : " + error.message);
+                                      }, {'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true}});
+    } catch(error) {
+      console.log(LOG_PREFIX + "Failed to create Video PeerConnection : " + error.toString());
+    }
+    console.log(LOG_PREFIX + "Video PeerConnection offer is created");
   };
 
   WebRTCAV.prototype.createPeerConnection = function() {
     var plugin = this;
 //    var pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
     var pc_config = {"iceServers": [{"url": "stun:173.194.78.127:19302"}]};
-    var pc_constraints = {"optional": [{"DtlsSrtpKeyAgreement": false}]};
+    var pc_constraints = {"optional": [{"DtlsSrtpKeyAgreement": false}], 
+                        "mandatory":  {
+                                        "MozDontOfferDataChannel": true,
+                                        'OfferToReceiveAudio':true, 
+                                        'OfferToReceiveVideo':true
+                                      }
+                      };
     var constraints = { "optional": [],
                         "mandatory":  {
                                         "MozDontOfferDataChannel": true,
@@ -405,7 +594,7 @@
       webRTC.muted = "true";
       webRTC.id = "_apidaze-av-webrtc-local-" + (WebRTCAVCount++);
     } else {
-      webRTC.style.display = "none";
+//      webRTC.style.display = "none";
       webRTC.style.width = "133";
       webRTC.style.height = "100px";
       webRTC.style.border = "1px solid black";
