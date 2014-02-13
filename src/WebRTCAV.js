@@ -459,16 +459,8 @@
 
   WebRTCAV.prototype.createPeerConnection = function() {
     var plugin = this;
-//    var pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
-    var pc_config = {"iceServers": [{"url": "stun:173.194.78.127:19302"}]};
+    var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
     var pc_constraints = {"optional": [{"DtlsSrtpKeyAgreement": false}], 
-                        "mandatory":  {
-                                        "MozDontOfferDataChannel": true,
-                                        'OfferToReceiveAudio':true, 
-                                        'OfferToReceiveVideo':true
-                                      }
-                      };
-    var constraints = { "optional": [],
                         "mandatory":  {
                                         "MozDontOfferDataChannel": true,
                                         'OfferToReceiveAudio':true, 
