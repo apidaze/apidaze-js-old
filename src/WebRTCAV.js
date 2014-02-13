@@ -358,15 +358,7 @@
 
   WebRTCAV.prototype.createVideoPeerConnection = function() {
     var plugin = this;
-//    var pc_config = {"iceServers": [{"url": "stun:stun.l.google.com:19302"}]};
-    var pc_config = {"iceServers": [{"url": "stun:173.194.78.127:19302"}]};
-    var constraints = { "optional": [],
-                        "mandatory":  {
-                                        'OfferToReceiveAudio':true, 
-                                        'OfferToReceiveVideo':true,
-                                        "MozDontOfferDataChannel": true
-                                      }
-                      };
+    var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
 
     console.log(LOG_PREFIX + "Creating VideoPeerConnection...");
     try {
@@ -428,15 +420,6 @@
         console.log(LOG_PREFIX + "Localstream not ready, cannot create Video PeerConnection");
         throw new APIdaze.Exceptions.InitError("WebRTC localstream not ready");
       }
-
-      // temporary measure to remove Moz* constraints in Chrome
-      if (window.navigator.webkitGetUserMedia) {
-        for (var prop in constraints.mandatory) {
-          if (prop.indexOf("Moz") !== -1) {
-            delete constraints.mandatory[prop];
-          }
-        }
-      }   
 
       this.videoPeerConnection.createOffer(
                                       function(sessionDescription) {
@@ -528,15 +511,6 @@
         console.log(LOG_PREFIX + "Localstream not ready, cannot create PeerConnection");
         throw new APIdaze.Exceptions.InitError("WebRTC localstream not ready");
       }
-
-      // temporary measure to remove Moz* constraints in Chrome
-      if (window.navigator.webkitGetUserMedia) {
-        for (var prop in constraints.mandatory) {
-          if (prop.indexOf("Moz") !== -1) {
-            delete constraints.mandatory[prop];
-          }
-        }
-      }   
 
       this.peerConnection.createOffer(function(sessionDescription) {
                                         // Function called on success
