@@ -97,8 +97,7 @@
     switch(this.configuration.type) {
       case "webrtc":
         this.bind(listeners);
-        this.webRTCAV.joinroom(dest, identifier, listeners);
-        return this.webRTCAV;
+        return this.webRTCAV.joinroom(dest, identifier, listeners); 
       case "flash":
       case "auto":
         throw new APIdaze.Exceptions.CallError("Method joinroom not implemented in non WebRTC channels");
