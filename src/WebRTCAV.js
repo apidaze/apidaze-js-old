@@ -19,6 +19,8 @@
     this.localVideoSDP = "";            // SDP obtained after creating the main Video RTCPeerConnection
     this.localstream = {};
     this.localVideoStream = {};
+    this.videoOfferNum = 0;
+    this.videoBridgeMsid = "";		      // Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
     this.configuration = {};
     this.callid = "";
     this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
@@ -78,41 +80,20 @@
          */
         var json = JSON.parse(event.data);
 
-	console.log(LOG_PREFIX + "S->C : " + event.data);
+        console.log(LOG_PREFIX + "S->C : " + event.data);
         if (client.configuration.debug === true) {
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
 
-        if (json.type && json.type === "answer" && json.command === "getvideostream" && json.sdp) {
-          // Reply to a getvideostream command
-          // Create an event and pass it to the ConferenceRoom instance
-          console.log(LOG_PREFIX + "json.type : " + json.type);
-          console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          var tmpevent = {type: "confbridgegetvideostream", identifier: json.channel, sdp: json.sdp};
-          plugin.processEvent(tmpevent);
-           
-        } else if (json.type && json.type === "answer" && json.command === "getVideoStreamReply" && json.sdp) {
+        if (json.type && json.type === "answer" && json.command === "getVideoStreamReply" && json.sdp) {
+          // Build confbridge event out of videoBridge answer, and process it in the room object
           console.log(LOG_PREFIX + "Got SDP from video MCU : " + json.sdp.replace(/\|/g, "\r\n"));
-          plugin.remoteVideoSDP = json.sdp.replace(/\|/g, "\r\n");
-          plugin.videoPeerConnection.setRemoteDescription(
-              new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:plugin.remoteVideoSDP}),
-                function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
-                function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
-          );
-        } else if (json.type && json.type === "confbridgenewssrc" && json.ssrc) {
-		console.log(LOG_PREFIX + "Got new SSRC for this conference : " + json.ssrc);
-		if (plugin.localVideoSDP.sdp.indexOf(json.ssrc) === -1) {
-			console.log(LOG_PREFIX + "Looks like someone is publishing video in this room");  
-			plugin.remoteVideoSDP = plugin.remoteVideoSDP.replace(/1874557016/g, json.ssrc);
-			console.log(LOG_PREFIX + "Remote SDP : " + plugin.remoteVideoSDP);  
-			plugin.videoPeerConnection.setRemoteDescription(
-					new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:plugin.remoteVideoSDP}),
-					function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
-					function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
-					);
-		} else {
-			console.log(LOG_PREFIX + "Our SSRC, ignoring");
-		}
+          json.sdp = json.sdp.replace(/\|/g, "\r\n");
+          var newevent = {};
+          newevent.type = "confbridgevideostreams";
+          newevent.sdp = json.sdp;
+          plugin.processEvent(newevent);
+
         } else if (json.type && json.type === "answer" && json.sdp) {
           console.log(LOG_PREFIX + "json.type : " + json.type);
           console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
@@ -191,7 +172,6 @@
          */
         var json = JSON.parse(event.data);
 
-	console.log(LOG_PREFIX + "S->C : " + event.data);
         if (plugin.client.configuration.debug === true) {
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
@@ -272,21 +252,6 @@
     
     this.sendMessage(message);
 
-    tmp = {};
-    tmp['command'] = "getvideostream";
-    tmp['apiKey'] = apiKey;
-    tmp['roomname'] = dest['roomName'];
-    tmp['identifier'] = dest['nickName'];
-    tmp['channel'] = dest['nickName'];
-    tmp['userKeys'] = dest;
-    tmp['userKeys']['apiKey'] = tmp['apiKey'];
-    tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
-    tmp['type'] = "offer";
-    tmp['sdp'] = this.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|") + "a=apidazeroomname:" + dest['roomName'];
-    message = JSON.stringify(tmp);
-
-    this.sendMessage(message);
-
     return this.room = new APIdaze.ConferenceRoom(this, tmp['roomName'], tmp['identifier'], listeners);
   };
 
@@ -325,7 +290,7 @@
         plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
       }
     );
-
+/*
     opts.audio = false;
     opts.video = true;
     APIdaze.WebRTC.getUserMedia.call(navigator, opts, 
@@ -354,6 +319,7 @@
         plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
       }
     );
+*/
   };
 
   WebRTCAV.prototype.createVideoPeerConnection = function() {
@@ -387,31 +353,28 @@
         console.log(LOG_PREFIX + "VideoPeerConnection state changed");
       };
 
-      this.videoPeerConnection.onremovestream = function(stream) {
-        console.log(LOG_PREFIX + "Video PeerConnection stream removed : " + stream);
+      this.videoPeerConnection.onremovestream = function(mediaStreamEvent) {
+        console.log(LOG_PREFIX + "Video PeerConnection stream removed : " + mediaStreamEvent.stream.id);
+	if (mediaStreamEvent.stream.id === "34IQ1WaD8ZmokM24") {
+		/** Ignore this stream id, given back first by the video bridge */
+		return;
+	}
+
+	var element = document.querySelector("#_apidaze-av-webrtc-remote-" + mediaStreamEvent.stream.id);
+	document.body.removeChild(element);
       };
 
       this.videoPeerConnection.onaddstream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "Video PeerConnection stream added : " + mediaStreamEvent.stream.id);
-        var domId = plugin.createRemoteContainer(mediaStreamEvent.stream.id);
+	if (mediaStreamEvent.stream.id === "34IQ1WaD8ZmokM24") {
+		/** Ignore this stream id, given back first by the video bridge */
+		return;
+	}
+
+        var domId = plugin.createVideoRemoteContainer(mediaStreamEvent.stream.id);
         document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
-
-        /**
-         * Add video tracks to new displays
-         */
-        mediaStreamEvent.stream.onaddtrack = function(mediaTrackEvent) {
-          console.log(LOG_PREFIX + "Video PeerConnection track added : " + mediaTrackEvent.track.id);
-
-          /**
-           * Create new MediaStream object from the new video track
-           * and attach it to a new container
-           * */
-          var stream = new APIdaze.WebRTC.MediaStream([mediaTrackEvent.track]);
-
-          domId = plugin.createRemoteContainer(mediaTrackEvent.track.id);
-          document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(stream);
-        };
       };
+
       console.log(LOG_PREFIX + "Listeners added");
 
       if (this.status | CONSTANTS.STATUS_LOCALSTREAM_ATTACHED) {
@@ -425,10 +388,6 @@
                                       function(sessionDescription) {
                                          // Function called on success
                                         plugin.videoPeerConnection.setLocalDescription(sessionDescription); 
-                                        // Save this SDP
-                                        plugin.localVideoSDP = sessionDescription;
-					console.log(LOG_PREFIX + "-------------- Video SDP -----------------");
-					console.log(LOG_PREFIX + sessionDescription.sdp);
                                       },
                                       function(error) {
                                         // Function called on failure
@@ -484,25 +443,10 @@
 
       this.peerConnection.onaddstream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "PeerConnection stream added : " + mediaStreamEvent.stream.id);
-        var domId = plugin.createRemoteContainer(mediaStreamEvent.stream.id);
+        var domId = plugin.createAudioRemoteContainer(mediaStreamEvent.stream.id);
         document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
-
-        /**
-         * Add video tracks to new displays
-         */
-        mediaStreamEvent.stream.onaddtrack = function(mediaTrackEvent) {
-          console.log(LOG_PREFIX + "PeerConnection track added : " + mediaTrackEvent.track.id);
-
-          /**
-           * Create new MediaStream object from the new video track
-           * and attach it to a new container
-           * */
-          var stream = new APIdaze.WebRTC.MediaStream([mediaTrackEvent.track]);
-
-          domId = plugin.createRemoteContainer(mediaTrackEvent.track.id);
-          document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(stream);
-        };
       };
+
       console.log(LOG_PREFIX + "Listeners added");
 
       if (this.status | CONSTANTS.STATUS_LOCALSTREAM_ATTACHED) {
@@ -544,11 +488,15 @@
     return this.createContainer("local", null);
   };
 
-  WebRTCAV.prototype.createRemoteContainer = function(streamid) {
-    return this.createContainer("remote", streamid);
+  WebRTCAV.prototype.createAudioRemoteContainer = function(streamid) {
+    return this.createContainer("audio", "remote", streamid);
   };
 
-  WebRTCAV.prototype.createContainer = function(type, streamid){
+  WebRTCAV.prototype.createVideoRemoteContainer = function(streamid) {
+    return this.createContainer("video", "remote", streamid);
+  };
+
+  WebRTCAV.prototype.createContainer = function(mediatype, type, streamid){
 
     var webRTC = document.createElement("video");
    
@@ -560,13 +508,19 @@
       webRTC.muted = "true";
       webRTC.id = "_apidaze-av-webrtc-local-" + (WebRTCAVCount++);
     } else {
-//      webRTC.style.display = "none";
-      webRTC.style.width = "133";
-      webRTC.style.height = "100px";
-      webRTC.style.border = "1px solid black";
+      if (mediatype === "video") {
+        webRTC.style.width = "266px";
+        webRTC.style.height = "200px";
+        webRTC.style.border = "1px solid black";
+      } else {
+        webRTC.style.display = "none";
+        webRTC.style.width = "133px";
+        webRTC.style.height = "100px";
+	webRTC.style.border = "1px solid black";
+      }
       var length = this.remoteContainers.push(streamid);
       console.log(LOG_PREFIX + "New member added to remote containers (" + length + " members now).");
-      webRTC.id = "_apidaze-av-webrtc-remote-" + length;
+      webRTC.id = "_apidaze-av-webrtc-remote-" + streamid;
     }
     webRTC.autoplay = "autoplay";
     document.body.appendChild(webRTC);
@@ -580,6 +534,7 @@
     console.log(LOG_PREFIX + "C->S : " + message);
   };
 
+  WebRTCAV.CONSTANTS = CONSTANTS;
   APIdaze.WebRTCAV = WebRTCAV;
 
 }(APIdaze));
