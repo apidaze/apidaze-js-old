@@ -13,14 +13,8 @@
     this.remoteContainers = [];
     this.roomPeerConnections = [];
     this.peerConnection = {};
-    this.videoPeerConnection = {};      // A dedicated PeerConnection for video
-    this.remoteVideoSDP = "";
     this.localSDP = "";                 // SDP obtained after creating the main RTCPeerConnection
-    this.localVideoSDP = "";            // SDP obtained after creating the main Video RTCPeerConnection
     this.localstream = {};
-    this.localVideoStream = {};
-    this.videoOfferNum = 0;
-    this.videoBridgeMsid = "";		      // Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
     this.configuration = {};
     this.callid = "";
     this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
@@ -290,113 +284,6 @@
         plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
       }
     );
-/*
-    opts.audio = false;
-    opts.video = true;
-    APIdaze.WebRTC.getUserMedia.call(navigator, opts, 
-      // Function called on success
-      function(stream) {
-        try {
-          var container = document.querySelector("#"+ plugin.configuration.localVideoId);
-
-          container.src = APIdaze.WebRTC.URL.createObjectURL(stream);
-          plugin.localVideoStream = stream;
-          console.log(LOG_PREFIX + "getUserMedia (video) called successfully");
-        } catch(error) {
-          throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia (video) failed with error : " + error.message);
-        }
-        
-        try {
-          plugin.createVideoPeerConnection();
-        } catch(error) {
-          throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "createPeerConnection failed with error : " + error.message);
-        }
-
-      }, 
-      // Function called on failure
-      function(error) {
-        console.log(LOG_PREFIX + "getUsermedia (video) failed with error.name : " + error.name + " - error.message : " + error.message + " - error.constraintName : " + error.constraintName);
-        plugin.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
-      }
-    );
-*/
-  };
-
-  WebRTCAV.prototype.createVideoPeerConnection = function() {
-    var plugin = this;
-    var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
-
-    console.log(LOG_PREFIX + "Creating VideoPeerConnection...");
-    try {
-      this.videoPeerConnection = new APIdaze.WebRTC.RTCPeerConnection(pc_config, {'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true}});
-
-      /**
-      * Create various callback functions, the most important
-      * being onicecandidate as we send our SDP offer once
-      * all candidates are gathered.
-      */
-      this.videoPeerConnection.onicecandidate = function(event) {
-        if (event.candidate) {
-          console.log(LOG_PREFIX + "ICE candidate received: " + event.candidate.candidate);
-        } else {
-          console.log(LOG_PREFIX + "No more ICE candidate");
-          plugin.status = plugin.status * CONSTANTS.STATUS_CANDIDATES_RECEIVED;
-          plugin.client.fire({type: "ready", data: "none"});
-        }
-      };
-
-      this.videoPeerConnection.onopen = function() {
-        console.log(LOG_PREFIX + "VideoPeerConnection open");
-      };
-
-      this.videoPeerConnection.onstatechange = function() {
-        console.log(LOG_PREFIX + "VideoPeerConnection state changed");
-      };
-
-      this.videoPeerConnection.onremovestream = function(mediaStreamEvent) {
-        console.log(LOG_PREFIX + "Video PeerConnection stream removed : " + mediaStreamEvent.stream.id);
-	if (mediaStreamEvent.stream.id === "34IQ1WaD8ZmokM24") {
-		/** Ignore this stream id, given back first by the video bridge */
-		return;
-	}
-
-	var element = document.querySelector("#_apidaze-av-webrtc-remote-" + mediaStreamEvent.stream.id);
-	document.body.removeChild(element);
-      };
-
-      this.videoPeerConnection.onaddstream = function(mediaStreamEvent) {
-        console.log(LOG_PREFIX + "Video PeerConnection stream added : " + mediaStreamEvent.stream.id);
-	if (mediaStreamEvent.stream.id === "34IQ1WaD8ZmokM24") {
-		/** Ignore this stream id, given back first by the video bridge */
-		return;
-	}
-
-        var domId = plugin.createVideoRemoteContainer(mediaStreamEvent.stream.id);
-        document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
-      };
-
-      console.log(LOG_PREFIX + "Listeners added");
-
-      if (this.status | CONSTANTS.STATUS_LOCALSTREAM_ATTACHED) {
-        this.videoPeerConnection.addStream(this.localVideoStream);
-      } else {
-        console.log(LOG_PREFIX + "Localstream not ready, cannot create Video PeerConnection");
-        throw new APIdaze.Exceptions.InitError("WebRTC localstream not ready");
-      }
-
-      this.videoPeerConnection.createOffer(
-                                      function(sessionDescription) {
-                                         // Function called on success
-                                        plugin.videoPeerConnection.setLocalDescription(sessionDescription); 
-                                      },
-                                      function(error) {
-                                        // Function called on failure
-                                        console.log(LOG_PREFIX + "Failed to create offer : " + error.message);
-                                      }, {'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true}});
-    } catch(error) {
-      console.log(LOG_PREFIX + "Failed to create Video PeerConnection : " + error.toString());
-    }
-    console.log(LOG_PREFIX + "Video PeerConnection offer is created");
   };
 
   WebRTCAV.prototype.createPeerConnection = function() {
