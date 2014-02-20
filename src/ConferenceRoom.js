@@ -6,7 +6,7 @@
     this.maxParticipants = APIdaze.maxroomparticipants;
     this.myChannelID = "";
     this.roomIdentifier = identifier;
-    this.name = roomName;
+    this.roomName = roomName;
     this.videoPeerConnection = {};      // A dedicated PeerConnection for video
     this.remoteVideoSDP = "";
     this.localVideoSDP = "";            // SDP obtained after creating the main Video RTCPeerConnection
@@ -53,7 +53,7 @@
         }, 
         // Function called on failure
         function(error) {
-          console.log(LOG_PREFIX + "getUsermedia (video) failed with error.name : " + error.name + " - error.message : " + error.message + " - error.constraintName : " + error.constraintName);
+          console.log(LOG_PREFIX + "getUsermedia (video) failed with error : " + error.name + " - error.message : " + error.message + " - error.constraintName : " + error.constraintName);
           self.webRTCClient.client.fire({type: "error", component: "getUserMedia", name: error.name, message: error.message, constraintName: error.constraintName});
         }
     );
@@ -85,14 +85,14 @@
           var tmp = {};
           tmp['command'] = "getvideostream";
           tmp['apiKey'] = self.webRTCClient.configuration['apiKey'];
-          tmp['roomname'] = self.name;
+          tmp['roomname'] = self.roomName;
           tmp['identifier'] = self.roomIdentifier;
           tmp['channel'] = self.roomIdentifier;
           tmp['userKeys'] = {};
           tmp['userKeys']['apiKey'] = tmp['apiKey'];
           //tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
           tmp['type'] = "offer";
-          tmp['sdp'] = self.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|") + "a=apidazeroomname:" + self.name;
+          tmp['sdp'] = self.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|") + "a=apidazeroomname:" + self.roomName;
           var message = JSON.stringify(tmp);
 
           self.webRTCClient.sendMessage(message);
