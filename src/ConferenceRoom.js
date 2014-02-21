@@ -271,6 +271,9 @@
           console.log(LOG_PREFIX + "SSRC already caught, ignoring");
         }
         break;
+      case "confbridgetextmessage":
+        this.fire({type: "confbridgetextmessage", data: JSON.stringify({to: event.to, fromnick: event.from, fromchannel:event.astfrom, text:event.text})});
+        break;
       default:
         console.log(LOG_PREFIX + "Unknown event : " + JSON.stringify(event));
         console.log("Event type : " + event.type);
