@@ -246,7 +246,7 @@
     
     this.sendMessage(message);
 
-    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomName'], tmp['identifier'], listeners);
+    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomname'], tmp['identifier'], listeners);
   };
 
   /** 
@@ -379,11 +379,11 @@
     return this.createContainer("audio", "remote", streamid);
   };
 
-  WebRTCAV.prototype.createVideoRemoteContainer = function(streamid) {
-    return this.createContainer("video", "remote", streamid);
+  WebRTCAV.prototype.createVideoRemoteContainer = function(streamid, containerId) {
+    return this.createContainer("video", "remote", streamid, containerId);
   };
 
-  WebRTCAV.prototype.createContainer = function(mediatype, type, streamid){
+  WebRTCAV.prototype.createContainer = function(mediatype, type, streamid, containerId){
 
     var webRTC = document.createElement("video");
    
@@ -394,26 +394,31 @@
       webRTC.style.border = "1px solid black";
       webRTC.muted = "true";
       webRTC.id = "_apidaze-av-webrtc-local-" + (WebRTCAVCount++);
+      webRTC.autoplay = "autoplay";
+      document.body.appendChild(webRTC);
     } else {
       if (mediatype === "video") {
         webRTC.style.width = "266px";
         webRTC.style.height = "200px";
         webRTC.style.border = "1px solid black";
+        webRTC.id = "_apidaze-video-webrtc-remote-" + streamid;
+        webRTC.autoplay = "autoplay";
+        var container = document.querySelector("#" + containerId);
+        container.appendChild(webRTC);
       } else {
         webRTC.style.display = "none";
         webRTC.style.width = "133px";
         webRTC.style.height = "100px";
-	webRTC.style.border = "1px solid black";
+        webRTC.style.border = "1px solid black";
+        webRTC.id = "_apidaze-audio-webrtc-remote-" + streamid;
+        webRTC.autoplay = "autoplay";
+        document.body.appendChild(webRTC);
       }
       var length = this.remoteContainers.push(streamid);
       console.log(LOG_PREFIX + "New member added to remote containers (" + length + " members now).");
-      webRTC.id = "_apidaze-av-webrtc-remote-" + streamid;
     }
-    webRTC.autoplay = "autoplay";
-    document.body.appendChild(webRTC);
 
-    var container = document.querySelector("#"+webRTC.id);
-    return container.id;
+    return webRTC.id;
   };
 
   WebRTCAV.prototype.sendMessage = function(message) {

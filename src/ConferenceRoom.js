@@ -3,6 +3,7 @@
 
   var ConferenceRoom = function(webRTCClient, roomName, identifier, listeners) {
     this.webRTCClient = webRTCClient;
+    this.configuration = {};
     this.maxParticipants = APIdaze.maxroomparticipants;
     this.myAstChannelID = "";
     this.roomIdentifier = identifier;
@@ -29,9 +30,17 @@
   /**
    * Call getUserMedia, and create the Video peerConnection 
    * */
-  ConferenceRoom.prototype.joinInVideo = function() {
+  ConferenceRoom.prototype.joinInVideo = function(configuration) {
     var self = this;
     var opts = {audio: false, video: true}; 
+    this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container"}, configuration);
+    var container = document.querySelector("#" + this.configuration.videoContainerId);
+    if (container === null) {
+      console.log(LOG_PREFIX + "Video container does not exist or invalid, let's create it.");
+      var div = document.createElement('div');
+      div.id = this.configuration.videoContainerId;
+      document.body.appendChild(div);
+   }
     APIdaze.WebRTC.getUserMedia.call(navigator, opts, 
         // Function called on success
         function(stream) {
@@ -115,8 +124,10 @@
           return;
         }
 
-        var element = document.querySelector("#_apidaze-av-webrtc-remote-" + mediaStreamEvent.stream.id);
-        document.body.removeChild(element);
+        var element = document.querySelector("#_apidaze-video-webrtc-remote-" + mediaStreamEvent.stream.id);
+        var parent = document.querySelector("#" + self.configuration.videoContainerId);
+        parent.removeChild(element);
+        element = null;
       };
 
       this.videoPeerConnection.onaddstream = function(mediaStreamEvent) {
@@ -126,7 +137,7 @@
           return;
         }
 
-        var domId = self.webRTCClient.createVideoRemoteContainer(mediaStreamEvent.stream.id);
+        var domId = self.webRTCClient.createVideoRemoteContainer(mediaStreamEvent.stream.id, self.configuration.videoContainerId);
         document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
       };
 
