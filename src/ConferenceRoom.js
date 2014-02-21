@@ -4,7 +4,7 @@
   var ConferenceRoom = function(webRTCClient, roomName, identifier, listeners) {
     this.webRTCClient = webRTCClient;
     this.maxParticipants = APIdaze.maxroomparticipants;
-    this.myChannelID = "";
+    this.myAstChannelID = "";
     this.roomIdentifier = identifier;
     this.roomName = roomName;
     this.videoPeerConnection = {};      // A dedicated PeerConnection for video
@@ -12,7 +12,8 @@
     this.localVideoSDP = "";            // SDP obtained after creating the main Video RTCPeerConnection
     this.localVideoStream = {};
     this.videoOfferNum = 0;
-    this.videoBridgeMsid = "";		// Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
+    this.videoBridgeMsid = "";          // Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
+    this.roomastchannick = {};          // An associative array that matches nicknames with Asterisk Channels
 
     APIdaze.EventTarget.call(this);
 
@@ -153,6 +154,23 @@
     console.log(LOG_PREFIX + "Video PeerConnection offer is created");
   };
 
+  ConferenceRoom.prototype.sendMessage = function(type, astchannelto, message, from) {
+    var tmp = {};
+    tmp['command'] = "sendtext";
+    tmp['type'] = "public";
+    tmp['destination'] = type === "private" ? astchannelto : this.roomName;
+    tmp['apiKey'] = this.webRTCClient.configuration['apiKey'];
+    tmp['roomname'] = this.roomName;
+    tmp['from'] = typeof from !== 'undefined' ? from : this.roomIdentifier;
+    tmp['astchannel'] = this.myAstChannelID;
+    tmp['userKeys'] = {};
+    tmp['userKeys']['apiKey'] = tmp['apiKey'];
+    tmp['text'] = message;
+    var msg = JSON.stringify(tmp);
+
+    this.webRTCClient.sendMessage(msg);
+  };
+
   ConferenceRoom.prototype.sendDTMF = function(dtmf) {
     var tmp = {};
     tmp['command'] = "senddtmf";
@@ -167,15 +185,17 @@
     switch (event.type) {
       case "confbridgewelcome":
         console.log(LOG_PREFIX + "My channel identifier in room " + event.room + " : " + event.identifier);
-        this.myChannelID = event.identifier;
+        this.myAstChannelID = event.identifier;
         break;
       case "confbridgejoin":
         // if (event.channel !== this.myChannelID) {
         console.log(LOG_PREFIX + "Someone (" + event.channel + ") entered room " + event.room + ".");
+        this.roomastchannick[event.channel] = {nickname: event.name, number: event.number};
         this.fire({type: "confbridgejoin", data: JSON.stringify({room: event.room, channel: event.channel, name: event.name, number: event.number})});
         break;
       case "confbridgeleave":
         console.log(LOG_PREFIX + "Someone (" + event.channel +") left room " + event.room + ".");
+        delete this.roomastchannick[event.channel]; 
         this.fire({type: "confbridgeleave", data: JSON.stringify({room: event.room, channel: event.channel, name: event.name, number: event.number})});
         break;
       case "confbridgemembers":
