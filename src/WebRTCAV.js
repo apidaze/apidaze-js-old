@@ -27,15 +27,11 @@
 
     var plugin = this;
 
-    this.configuration = APIdaze.Utils.extend({localAudioId: "", localVideoId: ""}, client.configuration);
+    this.configuration = APIdaze.Utils.extend({localAudioId: ""}, client.configuration);
     console.log(LOG_PREFIX + "Starting WebRTC");
 
     if (this.configuration.localAudioId === "") {
-      this.configuration.localAudioId = this.createLocalContainer();
-    }
-
-    if (this.configuration.localVideoId === "") {
-      this.configuration.localVideoId = this.createLocalContainer();
+      this.configuration.localAudioId = this.createAudioLocalElement();
     }
 
     this.bind({
@@ -369,8 +365,8 @@
     }
   };
 
-  WebRTCAV.prototype.createLocalContainer = function() {
-    return this.createAVElement("local", null);
+  WebRTCAV.prototype.createAudioLocalElement = function() {
+    return this.createAVElement("audio", "local", null);
   };
 
   WebRTCAV.prototype.createAudioRemoteElement = function(streamid) {
@@ -420,6 +416,7 @@
         webRTC.autoplay = "autoplay";
         document.body.appendChild(webRTC);
       }
+
       var length = this.remoteContainers.push(streamid);
       console.log(LOG_PREFIX + "New member added to remote containers (" + length + " members now).");
     }
