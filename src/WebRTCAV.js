@@ -328,7 +328,7 @@
 
       this.peerConnection.onaddstream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "PeerConnection stream added : " + mediaStreamEvent.stream.id);
-        var domId = plugin.createAudioRemoteContainer(mediaStreamEvent.stream.id);
+        var domId = plugin.createAudioRemoteElement(mediaStreamEvent.stream.id);
         document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
       };
 
@@ -373,11 +373,11 @@
     return this.createAVElement("local", null);
   };
 
-  WebRTCAV.prototype.createAudioRemoteContainer = function(streamid) {
+  WebRTCAV.prototype.createAudioRemoteElement = function(streamid) {
     return this.createAVElement("audio", "remote", streamid);
   };
 
-  WebRTCAV.prototype.createVideoRemoteContainer = function(streamid, containerId) {
+  WebRTCAV.prototype.createVideoRemoteElement = function(streamid, containerId) {
     return this.createAVElement("video", "remote", streamid, containerId);
   };
 

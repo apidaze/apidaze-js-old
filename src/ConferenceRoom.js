@@ -150,7 +150,7 @@
           return;
         }
 
-        var domId = self.webRTCClient.createVideoRemoteContainer(mediaStreamEvent.stream.id, self.configuration.videoContainerId);
+        var domId = self.webRTCClient.createVideoRemoteElement(mediaStreamEvent.stream.id, self.configuration.videoContainerId);
         document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
       };
 
