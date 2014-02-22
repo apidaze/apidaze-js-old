@@ -20,16 +20,17 @@
 
     this.bind(listeners);
 
-    /**
-     * Private functions 
-     */
   };
 
   ConferenceRoom.prototype = new APIdaze.EventTarget();
 
   /**
-   * Call getUserMedia, and create the Video peerConnection 
-   * */
+   * Call getUserMedia, create the Video peerConnection.
+   *
+   * The configuration object passed as an argument contains the following options :
+   * - videoContainerId : the DOM id of the elements containing the various video
+   *   tags
+   */
   ConferenceRoom.prototype.joinInVideo = function(configuration) {
     var self = this;
     var opts = {audio: false, video: true}; 
@@ -40,7 +41,9 @@
       var div = document.createElement('div');
       div.id = this.configuration.videoContainerId;
       document.body.appendChild(div);
-   }
+    }
+
+    // Call getUserMedia for our video conference. On success, create the video PeerConnection. 
     APIdaze.WebRTC.getUserMedia.call(navigator, opts, 
         // Function called on success
         function(stream) {
@@ -69,7 +72,15 @@
     );
   };
 
-
+  /**
+   * Create the video PeerConnection for this room.
+   *
+   * Use our STUN server in priority, fallback to Google if we're unreachable. 
+   * We gather all our ICE candidates, set up our listeners to all the WebRTC
+   * related events (new media stream, removal), add our local video to the 
+   * Peer Connection, create our local SDP offer and eventually send it to the
+   * signalling server.
+   */
   ConferenceRoom.prototype.createVideoPeerConnection = function() {
     var self = this;
     var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
@@ -78,15 +89,16 @@
     try {
       this.videoPeerConnection = new APIdaze.WebRTC.RTCPeerConnection(pc_config, {'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true}});
 
-      /**
-       * Create various callback functions, the most important
-       * being onicecandidate as we send our SDP offer once
-       * all candidates are gathered.
-       */
+       /* Create various callback functions, the most important
+        * being onicecandidate as we send our SDP offer once
+        * all candidates are gathered. */
       this.videoPeerConnection.onicecandidate = function(event) {
         if (event.candidate) {
           console.log(LOG_PREFIX + "ICE candidate received: " + event.candidate.candidate);
         } else {
+          /* At this stage, we received all the candidates and therefore
+           * we're ready to signal our presence to the video bridge 
+           * and the JavaScript program. */
           console.log(LOG_PREFIX + "No more ICE candidate");
           self.webRTCClient.status = self.webRTCClient.status * APIdaze.WebRTCAV.CONSTANTS.STATUS_CANDIDATES_RECEIVED;
           self.webRTCClient.client.fire({type: "ready", data: "none"});
@@ -102,6 +114,7 @@
           tmp['userKeys']['apiKey'] = tmp['apiKey'];
           //tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
           tmp['type'] = "offer";
+          // Replace line terminating characters with | to make Asterisk happy.
           tmp['sdp'] = self.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|") + "a=apidazeroomname:" + self.roomName;
           var message = JSON.stringify(tmp);
 
@@ -120,7 +133,7 @@
       this.videoPeerConnection.onremovestream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "Video PeerConnection stream removed : " + mediaStreamEvent.stream.id);
         if (mediaStreamEvent.stream.id === "34IQ1WaD8ZmokM24") {
-          /** Ignore this stream id, given back first by the video bridge */
+          // Ignore this stream id, given back first by the video bridge
           return;
         }
 
@@ -133,7 +146,7 @@
       this.videoPeerConnection.onaddstream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "Video PeerConnection stream added : " + mediaStreamEvent.stream.id);
         if (mediaStreamEvent.stream.id === "34IQ1WaD8ZmokM24") {
-          /** Ignore this stream id, given back first by the video bridge */
+          // Ignore this stream id, given back first by the video bridge
           return;
         }
 
@@ -165,6 +178,14 @@
     console.log(LOG_PREFIX + "Video PeerConnection offer is created");
   };
 
+  /**
+   * Send a text message to the room participants.
+   *
+   * The message type can be public if we want to send it to all participants,
+   * or private if we want to send it to a given participant in private.
+   *
+   * NOTE : private mode not yet implemented.
+   */
   ConferenceRoom.prototype.sendMessage = function(type, astchannelto, message, from) {
     var tmp = {};
     tmp['command'] = "sendtext";
@@ -182,6 +203,9 @@
     this.webRTCClient.sendMessage(msg);
   };
 
+  /**
+   * Send a DTMF to the room : not implemented yet
+   */
   ConferenceRoom.prototype.sendDTMF = function(dtmf) {
     var tmp = {};
     tmp['command'] = "senddtmf";
@@ -191,15 +215,29 @@
     this.webRTCClient.sendMessage(message);
   };
 
+  /**
+   * Process events received from the room.
+   *
+   * Events which are processed here :
+   *  confbridgewelcome : retrieve our Asterisk channel identifier
+   *  confbridgejoin/confbridgeleave :  who enters and leaves the conference room
+   *  confbridgemembers : get the list of the participants
+   *  confbridgetalking : who is talking in the conference room
+   *  confbridgevideostreams : the first answer from the video bridge (like a welcome message :))
+   *  confbridgenewssrc/confbridgeleftssrc : the SSRCs of the video streams that come in and out
+   *  confbridgetextmessage : process incoming text messages
+   *
+   *  Most events fire a new event to the JavaScript program.
+   */
   ConferenceRoom.prototype.processEvent = function(event) {
     var self = this;
     switch (event.type) {
       case "confbridgewelcome":
+        // Just set my Asterisk channel identifier
         console.log(LOG_PREFIX + "My channel identifier in room " + event.room + " : " + event.identifier);
         this.myAstChannelID = event.identifier;
         break;
       case "confbridgejoin":
-        // if (event.channel !== this.myChannelID) {
         console.log(LOG_PREFIX + "Someone (" + event.channel + ") entered room " + event.room + ".");
         this.roomastchannick[event.channel] = {nickname: event.name, number: event.number};
         this.fire({type: "confbridgejoin", data: JSON.stringify({room: event.room, channel: event.channel, name: event.name, number: event.number})});
@@ -255,13 +293,13 @@
           console.log(LOG_PREFIX + "Local SDP : " + this.localVideoSDP);
           console.log(LOG_PREFIX + "this.videoOfferNum : " + this.videoOfferNum);
           if (this.videoOfferNum === 1) {
-            /** First update of the video peers */
+            // First update of the video peers
             this.remoteVideoSDP = this.remoteVideoSDP.replace(/1874557016/g, event.ssrc);
             this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 1 IN IP4 195.5.246.235/g, "o=APIdaze 1 2 IN IP4 195.5.246.235");
             this.remoteVideoSDP = this.remoteVideoSDP.replace(/34IQ1WaD8ZmokM24/g, event.msid);
             this.videoOfferNum ++;
           } else {
-            /** Add new SDP attributes for this stream */
+            // Add new SDP attributes for this stream
             this.videoOfferNum ++;
             this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
             var newssrc =   "a=ssrc:" + event.ssrc + " cname:" + event.msid + "\r\n" +
@@ -292,9 +330,6 @@
     }
     };
 
-
     APIdaze.ConferenceRoom = ConferenceRoom;
 
   }(APIdaze));
-
-
