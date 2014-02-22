@@ -80,8 +80,10 @@
         }
 
         if (json.type && json.type === "answer" && json.command === "getVideoStreamReply" && json.sdp) {
-          // Build confbridge event out of videoBridge answer, and process it in the room object
-          console.log(LOG_PREFIX + "Got SDP from video MCU : " + json.sdp.replace(/\|/g, "\r\n"));
+          // Build a confbridge event out of videoBridge answer, and process it in the room object
+          if (client.configuration.debug === true) {
+            console.log(LOG_PREFIX + "Got SDP from video MCU : " + json.sdp.replace(/\|/g, "\r\n"));
+          }
           json.sdp = json.sdp.replace(/\|/g, "\r\n");
           var newevent = {};
           newevent.type = "confbridgevideostreams";
@@ -249,10 +251,6 @@
     return this.room = new APIdaze.ConferenceRoom(this, tmp['roomname'], tmp['identifier'], listeners);
   };
 
-  /** 
-   * We call getUserMedia twice :
-   * first to get the microphone stream, then the local video stream
-   */
   WebRTCAV.prototype.getUserMedia = function(options) {
     var plugin = this;
     var opts = APIdaze.Utils.extend({audio: true, video: false}, options);
