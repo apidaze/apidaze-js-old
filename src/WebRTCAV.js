@@ -370,18 +370,26 @@
   };
 
   WebRTCAV.prototype.createLocalContainer = function() {
-    return this.createContainer("local", null);
+    return this.createAVElement("local", null);
   };
 
   WebRTCAV.prototype.createAudioRemoteContainer = function(streamid) {
-    return this.createContainer("audio", "remote", streamid);
+    return this.createAVElement("audio", "remote", streamid);
   };
 
   WebRTCAV.prototype.createVideoRemoteContainer = function(streamid, containerId) {
-    return this.createContainer("video", "remote", streamid, containerId);
+    return this.createAVElement("video", "remote", streamid, containerId);
   };
 
-  WebRTCAV.prototype.createContainer = function(mediatype, type, streamid, containerId){
+  /**
+   * Create and audio or video DOM element.
+   *
+   * The element is created and inserted in the document. Depending on the
+   * options, it can be interted under document.body or another DOM element.
+   *
+   * NOTE : can we configure the video size here too?
+   */
+  WebRTCAV.prototype.createAVElement = function(mediatype, type, streamid, containerId){
 
     var webRTC = document.createElement("video");
    
