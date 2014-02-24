@@ -27,11 +27,15 @@
 
     var plugin = this;
 
-    this.configuration = APIdaze.Utils.extend({localAudioId: ""}, client.configuration);
+    this.configuration = APIdaze.Utils.extend({localAudioId: "", localVideoId: ""}, client.configuration);
     console.log(LOG_PREFIX + "Starting WebRTC");
 
     if (this.configuration.localAudioId === "") {
       this.configuration.localAudioId = this.createAudioLocalElement();
+    }
+
+    if (this.configuration.localVideoId === "") {
+      this.configuration.localVideoId = this.createVideoLocalElement();
     }
 
     this.bind({
@@ -367,6 +371,10 @@
 
   WebRTCAV.prototype.createAudioLocalElement = function() {
     return this.createAVElement("audio", "local", null);
+  };
+
+  WebRTCAV.prototype.createVideoLocalElement = function() {
+    return this.createAVElement("video", "local", null);
   };
 
   WebRTCAV.prototype.createAudioRemoteElement = function(streamid) {
