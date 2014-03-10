@@ -93,7 +93,18 @@
         } else if (json.type && json.type === "answer" && json.sdp) {
           console.log(LOG_PREFIX + "json.type : " + json.type);
           console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:json.type, sdp:json.sdp}));
+          plugin.peerConnection.setRemoteDescription(
+              new APIdaze.WebRTC.RTCSessionDescription({type:json.type, sdp:json.sdp}),
+              function() { console.log('Remote description set, SDP : ' + plugin.peerConnection.remoteDescription.sdp);},
+              function(error) {
+                console.log(error.name + ' : ' + error.message);
+                // Mozilla error prototype : {name, message}
+                for(var propertyName in error) {
+
+                  console.log('Property in error : ' + propertyName);  
+                }
+              }
+          );
           console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
         } else if (json.event) {
             plugin.processEvent(json.event);
@@ -260,7 +271,7 @@
         try {
           var container = document.querySelector("#"+ plugin.configuration.localAudioId);
 
-          container.src = APIdaze.WebRTC.URL.createObjectURL(stream);
+          APIdaze.WebRTC.attachMediaStream(container, stream);
           plugin.localstream = stream;
           plugin.status *= CONSTANTS.STATUS_LOCALSTREAM_ATTACHED;
           plugin.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_READY;
@@ -286,14 +297,11 @@
 
   WebRTCAV.prototype.createPeerConnection = function() {
     var plugin = this;
-    var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
-    var pc_constraints = {"optional": [{"DtlsSrtpKeyAgreement": false}], 
-                        "mandatory":  {
-                                        "MozDontOfferDataChannel": true,
-                                        'OfferToReceiveAudio':true, 
-                                        'OfferToReceiveVideo':true
-                                      }
-                      };
+    var pc_config = {"iceServers": []};
+    var pc_constraints = {
+                          "optional": [{"DtlsSrtpKeyAgreement": true}], 
+                          "mandatory":  { 'OfferToReceiveAudio':true,  'OfferToReceiveVideo':false}
+                         };
 
     console.log(LOG_PREFIX + "Creating PeerConnection...");
     try {
@@ -329,7 +337,7 @@
       this.peerConnection.onaddstream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "PeerConnection stream added : " + mediaStreamEvent.stream.id);
         var domId = plugin.createAudioRemoteElement(mediaStreamEvent.stream.id);
-        document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
+        APIdaze.WebRTC.attachMediaStream(document.querySelector("#"+domId), mediaStreamEvent.stream);
       };
 
       console.log(LOG_PREFIX + "Listeners added");
@@ -342,20 +350,22 @@
       }
 
       this.peerConnection.createOffer(function(sessionDescription) {
-                                        // Function called on success
-                                        plugin.peerConnection.setLocalDescription(sessionDescription); 
-                                        // Save this SDP
-                                        plugin.localSDP = sessionDescription;
-                                      },
-                                      function(error) {
-                                        // Function called on failure
-                                        console.log(LOG_PREFIX + "Failed to create offer : " + error.message);
-                                    //  }, constraints);
-                                      });
+                                          // Function called on success
+                                          plugin.peerConnection.setLocalDescription(sessionDescription); 
+                                          // Save this SDP
+                                          plugin.localSDP = sessionDescription.sdp;
+                                          console.log(LOG_PREFIX + "Local SDP : " + sessionDescription.sdp);
+                                        },
+                                        function(error) {
+                                          // Function called on failure
+                                          console.log(LOG_PREFIX + "Failed to create offer : " + error.message);
+                                        }
+                                      );
     } catch(error) {
       console.log(LOG_PREFIX + "Failed to create PeerConnection : " + error.toString());
     }
     console.log(LOG_PREFIX + "PeerConnection offer is created");
+    console.log(LOG_PREFIX + "Local SDP : " + this.localSDP);
   };
 
   WebRTCAV.prototype.resetPeerConnection = function() {
