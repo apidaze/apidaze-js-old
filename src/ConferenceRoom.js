@@ -231,6 +231,7 @@
    *  confbridgejoin/confbridgeleave :  who enters and leaves the conference room
    *  confbridgemembers : get the list of the participants
    *  confbridgetalking : who is talking in the conference room
+   *  confbridgevideomembers : get the list of the video participants
    *  confbridgevideostreams : the first answer from the video bridge (like a welcome message :))
    *  confbridgenewssrc/confbridgeleftssrc : the SSRCs of the video streams that come in and out
    *  confbridgetextmessage : process incoming text messages
@@ -262,6 +263,10 @@
       case "confbridgetalking":
         console.log(LOG_PREFIX + event.channel + " talkingstatus : " + event.talkingstatus);
         this.fire({type: "confbridgetalking", data: JSON.stringify({room: event.room, channel: event.channel, talkingstatus: event.talkingstatus})});
+        break;
+      case "confbridgevideomembers":
+        console.log(LOG_PREFIX + "Video members : " + JSON.stringify(event.members));
+        this.fire({type: "confbridgevideomembers", data: JSON.stringify({room: this.roomName, members: event.members})});
         break;
       case "confbridgevideostreams":
         // First anwer to our getVideoStreams command
