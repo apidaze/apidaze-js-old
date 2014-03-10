@@ -3,7 +3,7 @@
 
   var ConferenceRoom = function(webRTCClient, roomName, identifier, listeners) {
     this.webRTCClient = webRTCClient;
-    this.configuration = {};
+    this.configuration = {};            // Valid options : videoContainerId, mode (sendrecv, recvonly)
     this.maxParticipants = APIdaze.maxroomparticipants;
     this.myAstChannelID = "";
     this.roomIdentifier = identifier;
@@ -34,7 +34,12 @@
   ConferenceRoom.prototype.joinInVideo = function(configuration) {
     var self = this;
     var opts = {audio: false, video: true}; 
-    this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container"}, configuration);
+    this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container", mode: "sendrecv"}, configuration);
+
+    if (this.configuration.mode !== "sendrecv" && this.configuration.mode !== "recvonly") {
+      this.configuration.mode = "sendrecv";
+    }
+
     var container = document.querySelector("#" + this.configuration.videoContainerId);
     if (container === null) {
       console.log(LOG_PREFIX + "Video container does not exist or invalid, let's create it.");
@@ -157,7 +162,9 @@
       console.log(LOG_PREFIX + "Listeners added");
 
       if (self.webRTCClient.status | APIdaze.WebRTCAV.CONSTANTS.STATUS_LOCALSTREAM_ATTACHED) {
-        this.videoPeerConnection.addStream(this.localVideoStream);
+        if (this.configuration.mode === "sendrecv") {
+          this.videoPeerConnection.addStream(this.localVideoStream);
+        }
       } else {
         console.log(LOG_PREFIX + "Localstream not ready, cannot create Video PeerConnection");
         throw new APIdaze.Exceptions.InitError("WebRTC localstream not ready");
@@ -167,6 +174,7 @@
           function(sessionDescription) {
             // Function called on success
             self.videoPeerConnection.setLocalDescription(sessionDescription); 
+            console.log(LOG_PREFIX + "SDP for local offer : " + sessionDescription.sdp);
           },
           function(error) {
             // Function called on failure
@@ -284,6 +292,7 @@
             function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
             function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
             );
+        this.fire({type: "confbridgeleftssrc", data: JSON.stringify({room: event.room, channel: event.channel, ssrc: event.ssrc, msid: event.msid})});
         break;
       case "confbridgenewssrc":
         console.log(LOG_PREFIX + "Got new SSRC for this conference : " + event.ssrc);
@@ -306,7 +315,14 @@
               "a=ssrc:" + event.ssrc + " msid:" + event.msid + " " + event.msid + "v0\r\n" +
               "a=ssrc:" + event.ssrc + " mslabel:" + event.msid + "\r\n" +
               "a=ssrc:" + event.ssrc + " label:" + event.msid + "v0\r\n";
-            this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
+            //this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
+            switch (this.configuration.mode) {
+              case "sendrecv":
+                this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
+                break;
+              case "recvonly":
+                this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=recvonly\r\n/g, newssrc + "a=recvonly\r\n");
+            }
           }
 
           console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);  
@@ -316,6 +332,7 @@
               function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
               function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
               );
+          this.fire({type: "confbridgenewssrc", data: JSON.stringify({room: event.room, channel: event.channel, ssrc: event.ssrc, msid: event.msid})});
         } else {
           console.log(LOG_PREFIX + "SSRC already caught, ignoring");
         }
