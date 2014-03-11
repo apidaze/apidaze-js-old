@@ -18,6 +18,8 @@
       apiKey: "none"
     };
     this.status = CONSTANTS.STATUS_INIT;
+    this.callstarted = false;
+    this.roomstarted = false;
 
     try {
       this.init(config);
@@ -78,6 +80,12 @@
       throw new APIdaze.Exceptions.CallError("Client is not ready");
     }
 
+    if (this.callstarted === true) {
+      throw new APIdaze.Exceptions.CallError("Call already started");
+    }
+
+    this.callstarted = true;
+
     switch(this.configuration.type) {
       case "webrtc":
         return this.webRTCAV.call(params, listeners);
@@ -93,6 +101,12 @@
     if (this.status !== CONSTANTS.STATUS_READY) {
       throw new APIdaze.Exceptions.CallError("Client is not ready");
     }
+
+    if (this.roomstarted === true) {
+      throw new APIdaze.Exceptions.CallError("Already joined a conference room");
+    }
+
+    this.roomstarted = true;
 
     switch(this.configuration.type) {
       case "webrtc":
