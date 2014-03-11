@@ -15,6 +15,7 @@
     this.videoOfferNum = 0;
     this.videoBridgeMsid = "";          // Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
     this.roomastchannick = {};          // An associative array that matches nicknames with Asterisk Channels
+    this.videostarted = false;
 
     APIdaze.EventTarget.call(this);
 
@@ -35,6 +36,12 @@
     var self = this;
     var opts = {audio: false, video: true}; 
     this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container", mode: "sendrecv"}, configuration);
+
+    if (this.videostarted === true) {
+      throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "Video offer already sent");
+    }
+
+    this.videostarted = true;
 
     if (this.configuration.mode !== "sendrecv" && this.configuration.mode !== "recvonly") {
       this.configuration.mode = "sendrecv";
