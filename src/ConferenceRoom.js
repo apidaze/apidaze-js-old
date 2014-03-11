@@ -359,8 +359,8 @@
         console.log("Event type : " + event.type);
         break;
     }
-    };
+  };
 
-    APIdaze.ConferenceRoom = ConferenceRoom;
+  APIdaze.ConferenceRoom = ConferenceRoom;
 
-  }(APIdaze));
+}(APIdaze));
