@@ -32,7 +32,7 @@
    * - videoContainerId : the DOM id of the elements containing the various video
    *   tags
    */
-  ConferenceRoom.prototype.joinInVideo = function(configuration) {
+  ConferenceRoom.prototype.joinInVideo = function(configuration, listeners) {
     var self = this;
     var opts = {audio: false, video: true}; 
     this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container", mode: "sendrecv"}, configuration);
@@ -42,6 +42,8 @@
     }
 
     this.videostarted = true;
+
+    this.bind(listeners);
 
     if (this.configuration.mode !== "sendrecv" && this.configuration.mode !== "recvonly") {
       this.configuration.mode = "sendrecv";
