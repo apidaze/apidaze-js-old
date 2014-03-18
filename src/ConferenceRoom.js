@@ -14,6 +14,8 @@
     this.localVideoStream = {};
     this.videoOfferNum = 0;
     this.videoBridgeMsid = "";          // Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
+    this.myVideoBridgeSSRC = "";        // The SSRC of the video stream published by this instance
+    this.myVideoBridgeChannelID = "";   // The Channel ID of this instance on the video bridge
     this.roomastchannick = {};          // An associative array that matches nicknames with Asterisk Channels
     this.videostarted = false;
 
@@ -97,7 +99,7 @@
    */
   ConferenceRoom.prototype.createVideoPeerConnection = function() {
     var self = this;
-    var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
+    var pc_config = {"iceServers": []};
 
     console.log(LOG_PREFIX + "Creating VideoPeerConnection...");
     try {
@@ -129,7 +131,7 @@
           //tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
           tmp['type'] = "offer";
           // Replace line terminating characters with | to make Asterisk happy.
-          tmp['sdp'] = self.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|") + "a=apidazeroomname:" + self.roomName;
+          tmp['sdp'] = self.videoPeerConnection.localDescription.sdp.replace(/\r\n/g, "|");
           var message = JSON.stringify(tmp);
 
           self.webRTCClient.sendMessage(message);
@@ -244,6 +246,7 @@
    *  confbridgevideostreams : the first answer from the video bridge (like a welcome message :))
    *  confbridgenewssrc/confbridgeleftssrc : the SSRCs of the video streams that come in and out
    *  confbridgetextmessage : process incoming text messages
+   *  confbridgevideostatusupdate : enable/disable video for a stream
    *
    *  Most events fire a new event to the JavaScript program.
    */
@@ -275,6 +278,15 @@
         break;
       case "confbridgevideomembers":
         console.log(LOG_PREFIX + "Video members : " + JSON.stringify(event.members));
+        for (var i in event.members) {
+          if (event.members[i].channel === this.myAstChannelID) {
+            console.log(LOG_PREFIX + "My SSRC on the video bridge : " + event.members[i].ssrc);
+            console.log(LOG_PREFIX + "My channel ID on the video bridge : " + event.members[i].msid);
+            this.myVideoBridgeSSRC = event.members[i].ssrc;
+            this.myVideoBridgeChannelID = event.members[i].msid;
+            break;
+          }
+        }
         this.fire({type: "confbridgevideomembers", data: JSON.stringify({room: this.roomName, members: event.members})});
         break;
       case "confbridgevideostreams":
@@ -298,7 +310,7 @@
         this.localVideoSDP = this.localVideoSDP.replace(/a=crypto.*\r\n/, "");
         var regex = new RegExp("a=ssrc:" + event.ssrc + " .*\r\n", "g");
         this.remoteVideoSDP = this.remoteVideoSDP.replace(regex, "");
-        console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);  
+        console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
 
         this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
         this.videoPeerConnection.setRemoteDescription(
@@ -329,17 +341,10 @@
               "a=ssrc:" + event.ssrc + " msid:" + event.msid + " " + event.msid + "v0\r\n" +
               "a=ssrc:" + event.ssrc + " mslabel:" + event.msid + "\r\n" +
               "a=ssrc:" + event.ssrc + " label:" + event.msid + "v0\r\n";
-            //this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
-            switch (this.configuration.mode) {
-              case "sendrecv":
-                this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
-                break;
-              case "recvonly":
-                this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=recvonly\r\n/g, newssrc + "a=recvonly\r\n");
-            }
+            this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
           }
 
-          console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);  
+          console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
           this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
           this.videoPeerConnection.setRemoteDescription(
               new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:this.remoteVideoSDP}),
@@ -354,11 +359,87 @@
       case "confbridgetextmessage":
         this.fire({type: "confbridgetextmessage", data: JSON.stringify({to: event.to, fromnick: event.from, fromchannel:event.astfrom, text:event.text})});
         break;
+      case "confbridgevideostatusupdate":
+        this.videoOfferNum ++;
+        this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
+
+        if (event.status === "recvonly") {
+          this.localVideoSDP = this.localVideoSDP.replace(/a=crypto.*\r\n/, "");
+          regex = new RegExp("a=ssrc:" + event.ssrc + " .*\r\n", "g");
+          this.remoteVideoSDP = this.remoteVideoSDP.replace(regex, "");
+          console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
+
+          this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
+          this.videoPeerConnection.setRemoteDescription(
+              new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:this.remoteVideoSDP}),
+              function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
+              function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
+              );
+        } else if (event.status === "sendrecv") {
+          var tempssrc =  "a=ssrc:" + event.ssrc + " cname:" + event.msid + "\r\n" +
+                          "a=ssrc:" + event.ssrc + " msid:" + event.msid + " " + event.msid + "v0\r\n" +
+                          "a=ssrc:" + event.ssrc + " mslabel:" + event.msid + "\r\n" +
+                          "a=ssrc:" + event.ssrc + " label:" + event.msid + "v0\r\n";
+          this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, tempssrc + "a=sendrecv\r\n");
+          console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
+          this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
+          this.videoPeerConnection.setRemoteDescription(
+              new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:this.remoteVideoSDP}),
+              function() { console.log(LOG_PREFIX + "Remote SDP set on videoPeerConnection"); },
+              function(error) { console.log(LOG_PREFIX + "Failed to set SDP on videoPeerConnection : " + error); }
+              );
+        }
+        break;
       default:
         console.log(LOG_PREFIX + "Unknown event : " + JSON.stringify(event));
         console.log("Event type : " + event.type);
         break;
     }
+  };
+
+  /**
+   * Stop sending local video
+   */
+  ConferenceRoom.prototype.stopLocalVideo = function() {
+    this.videoPeerConnection.removeStream(this.localVideoStream);
+
+    var tmp = {};
+    tmp['command'] = "updatevideostream";
+    tmp['apiKey'] = this.webRTCClient.configuration['apiKey'];
+    tmp['roomname'] = this.roomName;
+    tmp['identifier'] = this.roomIdentifier;
+    tmp['channel'] = this.roomIdentifier;
+    tmp['userKeys'] = {};
+    tmp['userKeys']['apiKey'] = tmp['apiKey'];
+    tmp['msid'] = this.myVideoBridgeChannelID;
+    tmp['ssrc'] = this.myVideoBridgeSSRC;
+    tmp['status'] = "recvonly";
+    var message = JSON.stringify(tmp);
+
+    this.webRTCClient.sendMessage(message);
+  };
+
+  /**
+   * Start sending local video
+   */
+  ConferenceRoom.prototype.startLocalVideo = function() {
+    this.videoPeerConnection.addStream(this.localVideoStream);
+    console.log(LOG_PREFIX + "New SSRC to announce on the video bridge : " + this.myVideoBridgeSSRC);
+
+    var tmp = {};
+    tmp['command'] = "updatevideostream";
+    tmp['apiKey'] = this.webRTCClient.configuration['apiKey'];
+    tmp['roomname'] = this.roomName;
+    tmp['identifier'] = this.roomIdentifier;
+    tmp['channel'] = this.roomIdentifier;
+    tmp['userKeys'] = {};
+    tmp['userKeys']['apiKey'] = tmp['apiKey'];
+    tmp['msid'] = this.myVideoBridgeChannelID;
+    tmp['ssrc'] = this.myVideoBridgeSSRC;
+    tmp['status'] = "sendrecv";
+    var message = JSON.stringify(tmp);
+
+    this.webRTCClient.sendMessage(message);
   };
 
   APIdaze.ConferenceRoom = ConferenceRoom;
