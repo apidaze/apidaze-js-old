@@ -254,25 +254,35 @@
    * Prior to joining the room, we call this.getUsermedia, which internally
    * creates the PeerConnection object too by the way. If that function fails
    * we throw an exception.
+   *
+   * configuration The object that defines how to join the room (text only or
+   *               text + audio)
+   * listeners Listener function passed to the ConferenceRoom object
    */
   WebRTCAV.prototype.joinroom = function(configuration, listeners) {
     if (APIdaze.WebRTC.isSupported !== true) {
       throw new APIdaze.Exceptions.InitError("WebRTC not supported here");
     }
 
-    try {
-      this.getUserMedia(this.configuration);
-    } catch(e) {
-      throw e;
+    // Set audio to true by default
+    var config = APIdaze.Utils.extend({audio: true}, configuration);
+
+    if (config['audio'] === true) {
+      try {
+        this.getUserMedia(this.config);
+      } catch(e) {
+        throw e;
+      }
     }
 
     var apiKey = this.configuration['apiKey'];
     var tmp = {};
     tmp['command'] = "joinroom";
     tmp['apiKey'] = apiKey;
-    tmp['roomname'] = configuration['roomName'];
-    tmp['identifier'] = configuration['nickName'];
-    tmp['userKeys'] = configuration;
+    tmp['roomname'] = config['roomName'];
+    tmp['identifier'] = config['nickName'];
+    tmp['audiostarted'] = config['audio'];
+    tmp['userKeys'] = config;
     tmp['userKeys']['apiKey'] = tmp['apiKey'];
     tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
     tmp['type'] = "offer";
@@ -281,13 +291,13 @@
     
     this.sendMessage(message);
 
-    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomname'], tmp['identifier'], listeners);
+    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomname'], tmp['identifier'], tmp['audiostarted'], listeners);
   };
 
 
   /**
    * Get user media, and start PeerConnection
-   * */
+   */
   WebRTCAV.prototype.getUserMedia = function(options) {
     var plugin = this;
     var opts = APIdaze.Utils.extend({audio: true, video: false}, options);

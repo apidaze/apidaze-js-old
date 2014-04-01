@@ -1,7 +1,7 @@
 (function(APIdaze) {
   var LOG_PREFIX = APIdaze.name +' | '+ 'ConferenceRoom' +' | ';
 
-  var ConferenceRoom = function(webRTCClient, roomName, identifier, listeners) {
+  var ConferenceRoom = function(webRTCClient, roomName, identifier, audiostarted, listeners) {
     this.webRTCClient = webRTCClient;
     this.configuration = {};            // Valid options : videoContainerId, mode (sendrecv, recvonly)
     this.maxParticipants = APIdaze.maxroomparticipants;
@@ -18,6 +18,7 @@
     this.myVideoBridgeChannelID = "";   // The Channel ID of this instance on the video bridge
     this.roomastchannick = {};          // An associative array that matches nicknames with Asterisk Channels
     this.videostarted = false;
+    this.audiostarted = audiostarted;
 
     APIdaze.EventTarget.call(this);
 
