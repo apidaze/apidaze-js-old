@@ -116,11 +116,6 @@
       throw new APIdaze.Exceptions.InitError("Failed to initialize WebSocket to " + this.wsurl);
     }
 
-    try {
-      this.getUserMedia(this.configuration);
-    } catch(e) {
-      throw e;
-    }
   };
 
   WebRTCAV.prototype = new APIdaze.EventTarget();
@@ -208,10 +203,24 @@
 
   };
 
+  /**
+   * Place a call to APIdaze.
+   *
+   * Prior to starting the call, we call this.getUsermedia, which internally
+   * creates the PeerConnection object too by the way. If that function fails
+   * we throw an exception. Otherwise, the call is placed to APIdaze's backend
+   * and handled by the developer's ExternalScript.
+   */
   WebRTCAV.prototype.call = function(dest, listeners) {
     this.bind(listeners);
     var tmp = {};
     var apiKey = this.configuration['apiKey'];
+
+    try {
+      this.getUserMedia(this.configuration);
+    } catch(e) {
+      throw e;
+    }
 
     try {
       if (APIdaze.WebRTC.isSupported !== true) {
@@ -239,9 +248,22 @@
     return this.callobj = new APIdaze.Call(this, listeners);
   };
 
+  /**
+   * Join a room hosted by APIdaze.
+   *
+   * Prior to joining the room, we call this.getUsermedia, which internally
+   * creates the PeerConnection object too by the way. If that function fails
+   * we throw an exception.
+   */
   WebRTCAV.prototype.joinroom = function(dest, listeners) {
     if (APIdaze.WebRTC.isSupported !== true) {
       throw new APIdaze.Exceptions.InitError("WebRTC not supported here");
+    }
+
+    try {
+      this.getUserMedia(this.configuration);
+    } catch(e) {
+      throw e;
     }
 
     var apiKey = this.configuration['apiKey'];
@@ -262,6 +284,10 @@
     return this.room = new APIdaze.ConferenceRoom(this, tmp['roomname'], tmp['identifier'], listeners);
   };
 
+
+  /**
+   * Get user media, and start PeerConnection
+   * */
   WebRTCAV.prototype.getUserMedia = function(options) {
     var plugin = this;
     var opts = APIdaze.Utils.extend({audio: true, video: false}, options);
