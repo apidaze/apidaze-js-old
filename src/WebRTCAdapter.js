@@ -50,7 +50,7 @@
 
     // Attach a media stream to an element.
     WebRTC.attachMediaStream = function(element, stream) {
-      console.log(LOG_PREFIX + "Attaching media stream");
+      console.log(LOG_PREFIX + "Attaching media stream (Mozilla fashion)");
       element.mozSrcObject = stream;
       element.play();
     };
@@ -112,6 +112,7 @@
       } else if (typeof element.mozSrcObject !== 'undefined') {
         element.mozSrcObject = stream;
       } else if (typeof element.src !== 'undefined') {
+        console.log(LOG_PREFIX + "Attaching media stream (Chrome fashion)");
         element.src = WebRTC.URL.createObjectURL(stream);
       } else {
         console.log(LOG_PREFIX + "Error attaching stream to element.");

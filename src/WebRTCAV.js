@@ -27,11 +27,15 @@
 
     var plugin = this;
 
-    this.configuration = APIdaze.Utils.extend({localVideoId: ""}, client.configuration);
+    this.configuration = APIdaze.Utils.extend({localAudioId: "", localVideoId: ""}, client.configuration);
     console.log(LOG_PREFIX + "Starting WebRTC");
 
+    if (this.configuration.localAudioId === "") {
+      this.configuration.localAudioId = this.createAudioLocalElement();
+    }
+
     if (this.configuration.localVideoId === "") {
-      this.configuration.localVideoId = this.createLocalContainer();
+      this.configuration.localVideoId = this.createVideoLocalElement();
     }
 
     this.bind({
@@ -70,22 +74,37 @@
          */
         var json = JSON.parse(event.data);
 
+        console.log(LOG_PREFIX + "S->C : " + event.data);
         if (client.configuration.debug === true) {
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
 
-        if (json.type && json.type === "answer" && json.command === "getvideostream" && json.sdp) {
-          // Reply to a getvideostream command
-          // Create an event and pass it to the ConferenceRoom instance
-          console.log(LOG_PREFIX + "json.type : " + json.type);
-          console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          var tmpevent = {type: "confbridgegetvideostream", identifier: json.channel, sdp: json.sdp};
-          plugin.processEvent(tmpevent);
-           
+        if (json.type && json.type === "answer" && json.command === "getVideoStreamReply" && json.sdp) {
+          // Build a confbridge event out of videoBridge answer, and process it in the room object
+          if (client.configuration.debug === true) {
+            console.log(LOG_PREFIX + "Got SDP from video MCU : " + json.sdp.replace(/\|/g, "\r\n"));
+          }
+          json.sdp = json.sdp.replace(/\|/g, "\r\n");
+          var newevent = {};
+          newevent.type = "confbridgevideostreams";
+          newevent.sdp = json.sdp;
+          plugin.processEvent(newevent);
+
         } else if (json.type && json.type === "answer" && json.sdp) {
           console.log(LOG_PREFIX + "json.type : " + json.type);
           console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:json.type, sdp:json.sdp}));
+          plugin.peerConnection.setRemoteDescription(
+              new APIdaze.WebRTC.RTCSessionDescription({type:json.type, sdp:json.sdp}),
+              function() { console.log('Remote description set, SDP : ' + plugin.peerConnection.remoteDescription.sdp);},
+              function(error) {
+                console.log(error.name + ' : ' + error.message);
+                // Mozilla error prototype : {name, message}
+                for(var propertyName in error) {
+
+                  console.log('Property in error : ' + propertyName);  
+                }
+              }
+          );
           console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
         } else if (json.event) {
             plugin.processEvent(json.event);
@@ -115,15 +134,18 @@
     }
 
     if (event.type.match("^channel")) {
-      // Pass event to the Call object
-      this.callobj.processEvent(event);
-      
+      console.log(LOG_PREFIX + "Received event with info : " + event.info);
       if (event.info === 'hangup') {
         /** Grab hangup from the Gateway so we can remove the corresponding PeerConnection */
         console.log(LOG_PREFIX + "Resetting PeerConnection, deleting it first.");
-        this.resetPeerConnection();
+       // this.resetPeerConnection();
       }
 
+      console.log(LOG_PREFIX + "Unknown channel event : " + JSON.stringify(event));
+
+      // Pass event to the Call object
+      this.callobj.processEvent(event);
+      
       return;
     }
 
@@ -237,7 +259,7 @@
     
     this.sendMessage(message);
 
-    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomName'], tmp['identifier'], listeners);
+    return this.room = new APIdaze.ConferenceRoom(this, tmp['roomname'], tmp['identifier'], listeners);
   };
 
   WebRTCAV.prototype.getUserMedia = function(options) {
@@ -247,9 +269,9 @@
       // Function called on success
       function(stream) {
         try {
-          var container = document.querySelector("#"+ plugin.configuration.localVideoId);
+          var container = document.querySelector("#"+ plugin.configuration.localAudioId);
 
-          container.src = APIdaze.WebRTC.URL.createObjectURL(stream);
+          APIdaze.WebRTC.attachMediaStream(container, stream);
           plugin.localstream = stream;
           plugin.status *= CONSTANTS.STATUS_LOCALSTREAM_ATTACHED;
           plugin.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_READY;
@@ -275,15 +297,11 @@
 
   WebRTCAV.prototype.createPeerConnection = function() {
     var plugin = this;
-    var pc_config = {"iceServers": [{"url": "stun:195.5.246.235:3478"}, {"url": "stun:stun.l.google.com:19302"}]};
-    var pc_constraints = {"optional": [{"DtlsSrtpKeyAgreement": false}]};
-    var constraints = { "optional": [],
-                        "mandatory":  {
-                                        "MozDontOfferDataChannel": true,
-                                        'OfferToReceiveAudio':true, 
-                                        'OfferToReceiveVideo':true
-                                      }
-                      };
+    var pc_config = {"iceServers": []};
+    var pc_constraints = {
+                          "optional": [{"DtlsSrtpKeyAgreement": true}], 
+                          "mandatory":  { 'OfferToReceiveAudio':true,  'OfferToReceiveVideo':false}
+                         };
 
     console.log(LOG_PREFIX + "Creating PeerConnection...");
     try {
@@ -318,25 +336,10 @@
 
       this.peerConnection.onaddstream = function(mediaStreamEvent) {
         console.log(LOG_PREFIX + "PeerConnection stream added : " + mediaStreamEvent.stream.id);
-        var domId = plugin.createRemoteContainer(mediaStreamEvent.stream.id);
-        document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(mediaStreamEvent.stream);
-
-        /**
-         * Add video tracks to new displays
-         */
-        mediaStreamEvent.stream.onaddtrack = function(mediaTrackEvent) {
-          console.log(LOG_PREFIX + "PeerConnection track added : " + mediaTrackEvent.track.id);
-
-          /**
-           * Create new MediaStream object from the new video track
-           * and attach it to a new container
-           * */
-          var stream = new APIdaze.WebRTC.MediaStream([mediaTrackEvent.track]);
-
-          domId = plugin.createRemoteContainer(mediaTrackEvent.track.id);
-          document.querySelector("#"+domId).src = APIdaze.WebRTC.URL.createObjectURL(stream);
-        };
+        var domId = plugin.createAudioRemoteElement(mediaStreamEvent.stream.id);
+        APIdaze.WebRTC.attachMediaStream(document.querySelector("#"+domId), mediaStreamEvent.stream);
       };
+
       console.log(LOG_PREFIX + "Listeners added");
 
       if (this.status | CONSTANTS.STATUS_LOCALSTREAM_ATTACHED) {
@@ -346,30 +349,23 @@
         throw new APIdaze.Exceptions.InitError("WebRTC localstream not ready");
       }
 
-      // temporary measure to remove Moz* constraints in Chrome
-      if (window.navigator.webkitGetUserMedia) {
-        for (var prop in constraints.mandatory) {
-          if (prop.indexOf("Moz") !== -1) {
-            delete constraints.mandatory[prop];
-          }
-        }
-      }   
-
       this.peerConnection.createOffer(function(sessionDescription) {
-                                        // Function called on success
-                                        plugin.peerConnection.setLocalDescription(sessionDescription); 
-                                        // Save this SDP
-                                        plugin.localSDP = sessionDescription;
-                                      },
-                                      function(error) {
-                                        // Function called on failure
-                                        console.log(LOG_PREFIX + "Failed to create offer : " + error.message);
-                                    //  }, constraints);
-                                      });
+                                          // Function called on success
+                                          plugin.peerConnection.setLocalDescription(sessionDescription); 
+                                          // Save this SDP
+                                          plugin.localSDP = sessionDescription.sdp;
+                                          console.log(LOG_PREFIX + "Local SDP : " + sessionDescription.sdp);
+                                        },
+                                        function(error) {
+                                          // Function called on failure
+                                          console.log(LOG_PREFIX + "Failed to create offer : " + error.message);
+                                        }
+                                      );
     } catch(error) {
       console.log(LOG_PREFIX + "Failed to create PeerConnection : " + error.toString());
     }
     console.log(LOG_PREFIX + "PeerConnection offer is created");
+    console.log(LOG_PREFIX + "Local SDP : " + this.localSDP);
   };
 
   WebRTCAV.prototype.resetPeerConnection = function() {
@@ -383,15 +379,31 @@
     }
   };
 
-  WebRTCAV.prototype.createLocalContainer = function() {
-    return this.createContainer("local", null);
+  WebRTCAV.prototype.createAudioLocalElement = function() {
+    return this.createAVElement("audio", "local", null);
   };
 
-  WebRTCAV.prototype.createRemoteContainer = function(streamid) {
-    return this.createContainer("remote", streamid);
+  WebRTCAV.prototype.createVideoLocalElement = function() {
+    return this.createAVElement("video", "local", null);
   };
 
-  WebRTCAV.prototype.createContainer = function(type, streamid){
+  WebRTCAV.prototype.createAudioRemoteElement = function(streamid) {
+    return this.createAVElement("audio", "remote", streamid);
+  };
+
+  WebRTCAV.prototype.createVideoRemoteElement = function(streamid, containerId) {
+    return this.createAVElement("video", "remote", streamid, containerId);
+  };
+
+  /**
+   * Create and audio or video DOM element.
+   *
+   * The element is created and inserted in the document. Depending on the
+   * options, it can be interted under document.body or another DOM element.
+   *
+   * NOTE : can we configure the video size here too?
+   */
+  WebRTCAV.prototype.createAVElement = function(mediatype, type, streamid, containerId){
 
     var webRTC = document.createElement("video");
    
@@ -402,20 +414,32 @@
       webRTC.style.border = "1px solid black";
       webRTC.muted = "true";
       webRTC.id = "_apidaze-av-webrtc-local-" + (WebRTCAVCount++);
+      webRTC.autoplay = "autoplay";
+      document.body.appendChild(webRTC);
     } else {
-      webRTC.style.display = "none";
-      webRTC.style.width = "133";
-      webRTC.style.height = "100px";
-      webRTC.style.border = "1px solid black";
+      if (mediatype === "video") {
+        webRTC.style.width = "266px";
+        webRTC.style.height = "200px";
+        webRTC.style.border = "1px solid black";
+        webRTC.id = "_apidaze-video-webrtc-remote-" + streamid;
+        webRTC.autoplay = "autoplay";
+        var container = document.querySelector("#" + containerId);
+        container.appendChild(webRTC);
+      } else {
+        webRTC.style.display = "none";
+        webRTC.style.width = "133px";
+        webRTC.style.height = "100px";
+        webRTC.style.border = "1px solid black";
+        webRTC.id = "_apidaze-audio-webrtc-remote-" + streamid;
+        webRTC.autoplay = "autoplay";
+        document.body.appendChild(webRTC);
+      }
+
       var length = this.remoteContainers.push(streamid);
       console.log(LOG_PREFIX + "New member added to remote containers (" + length + " members now).");
-      webRTC.id = "_apidaze-av-webrtc-remote-" + length;
     }
-    webRTC.autoplay = "autoplay";
-    document.body.appendChild(webRTC);
 
-    var container = document.querySelector("#"+webRTC.id);
-    return container.id;
+    return webRTC.id;
   };
 
   WebRTCAV.prototype.sendMessage = function(message) {
@@ -423,6 +447,7 @@
     console.log(LOG_PREFIX + "C->S : " + message);
   };
 
+  WebRTCAV.CONSTANTS = CONSTANTS;
   APIdaze.WebRTCAV = WebRTCAV;
 
 }(APIdaze));

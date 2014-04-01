@@ -18,6 +18,8 @@
       apiKey: "none"
     };
     this.status = CONSTANTS.STATUS_INIT;
+    this.callstarted = false;
+    this.roomstarted = false;
 
     try {
       this.init(config);
@@ -78,6 +80,12 @@
       throw new APIdaze.Exceptions.CallError("Client is not ready");
     }
 
+    if (this.callstarted === true) {
+      throw new APIdaze.Exceptions.CallError("Call already started");
+    }
+
+    this.callstarted = true;
+
     switch(this.configuration.type) {
       case "webrtc":
         return this.webRTCAV.call(params, listeners);
@@ -94,11 +102,16 @@
       throw new APIdaze.Exceptions.CallError("Client is not ready");
     }
 
+    if (this.roomstarted === true) {
+      throw new APIdaze.Exceptions.CallError("Already joined a conference room");
+    }
+
+    this.roomstarted = true;
+
     switch(this.configuration.type) {
       case "webrtc":
         this.bind(listeners);
-        this.webRTCAV.joinroom(dest, identifier, listeners);
-        return this.webRTCAV;
+        return this.webRTCAV.joinroom(dest, identifier, listeners); 
       case "flash":
       case "auto":
         throw new APIdaze.Exceptions.CallError("Method joinroom not implemented in non WebRTC channels");
