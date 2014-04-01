@@ -255,7 +255,7 @@
    * creates the PeerConnection object too by the way. If that function fails
    * we throw an exception.
    */
-  WebRTCAV.prototype.joinroom = function(dest, listeners) {
+  WebRTCAV.prototype.joinroom = function(configuration, listeners) {
     if (APIdaze.WebRTC.isSupported !== true) {
       throw new APIdaze.Exceptions.InitError("WebRTC not supported here");
     }
@@ -270,9 +270,9 @@
     var tmp = {};
     tmp['command'] = "joinroom";
     tmp['apiKey'] = apiKey;
-    tmp['roomname'] = dest['roomName'];
-    tmp['identifier'] = dest['nickName'];
-    tmp['userKeys'] = dest;
+    tmp['roomname'] = configuration['roomName'];
+    tmp['identifier'] = configuration['nickName'];
+    tmp['userKeys'] = configuration;
     tmp['userKeys']['apiKey'] = tmp['apiKey'];
     tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
     tmp['type'] = "offer";
