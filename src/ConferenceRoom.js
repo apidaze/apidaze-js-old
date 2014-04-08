@@ -37,6 +37,11 @@
   ConferenceRoom.prototype.joinInVideo = function(configuration, listeners) {
     var self = this;
     var opts = {audio: false, video: true}; 
+    opts.video = {mandatory: {}};   // Same behavior as true
+    opts.video.mandatory.minWidth = 640;
+    opts.video.mandatory.minHeight = 360;
+    opts.video.mandatory.minAspectRatio = 1.77;
+
     this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container", mode: "sendrecv"}, configuration);
 
     if (this.videostarted === true) {
