@@ -29,6 +29,38 @@
   ConferenceRoom.prototype = new APIdaze.EventTarget();
 
   /**
+   * Call getUserMedia, create the Audio peerConnection.
+   */
+  ConferenceRoom.prototype.joinInAudio = function(listeners) {
+    var self = this;
+    var opts = {audio: true, video: false};
+
+    if (this.audiostarted === true) {
+      throw new APIdaze.Exceptions.ConferenceRoomError(LOG_PREFIX + "Audio offer already sent");
+    }
+
+    this.audiostarted = true;
+
+    this.bind(listeners);
+
+    /**
+     * Call getUserMedia for our audio conference. On success, create the
+     * audio PeerConnection.
+     *
+     * TO BE IMPLEMENTED!!!!!!!!!
+     */
+    APIdaze.WebRTC.getUserMedia.call(navigator, opts,
+        // Function called on success
+        function(stream) {
+        },
+        // Function called on failure
+        function(error) {
+          console.log(LOG_PREFIX + "getUsermedia (video) failed with error : " + error.name + " - error.message : " + error.message + " - error.constraintName : " + error.constraintName);
+        }
+    );
+  };
+
+  /**
    * Call getUserMedia, create the Video peerConnection.
    *
    * The configuration object passed as an argument contains the following options :
