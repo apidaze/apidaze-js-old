@@ -455,7 +455,7 @@
     } else {
       if (mediatype === "video") {
         webRTC.style.width = "266px";
-        webRTC.style.height = "200px";
+        webRTC.style.height = "150px";
         webRTC.style.border = "1px solid black";
         webRTC.id = "_apidaze-video-webrtc-remote-" + streamid;
         webRTC.autoplay = "autoplay";
