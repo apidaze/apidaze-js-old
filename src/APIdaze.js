@@ -18,7 +18,7 @@ var APIdaze = (function() {
       get: function(){ return 'ws.apidaze.io:81'; }
     },
     wshostport: {
-      get: function(){ return 'ws.apidaze.io:8088'; }
+      get: function(){ return 'ws.apidaze.io:8089'; }
     },
     swfurl: {
       get: function(){ return 'http://' + this.flashhostport + '/apidaze/apidaze.swf'; }
@@ -33,13 +33,13 @@ var APIdaze = (function() {
       get: function(){ return 'rtmfp://ws.apidaze.io/apidaze'; }
     },
     wsurl: {
-      get: function(){ return 'ws://' + this.wshostport + '/websocket'; }
+      get: function(){ return 'wss://' + this.wshostport + '/websocket'; }
     },
     dev_flashhostport: {
       get: function(){ return 'ws.apidaze.io:81'; }
     },
     dev_wshostport: {
-      get: function(){ return 'ws.apidaze.io:8088'; }
+      get: function(){ return 'ws.apidaze.io:8089'; }
     },
     dev_swfurl: {
       get: function(){ return 'http://' + this.dev_flashhostport + '/rtmp/apidaze.swf'; }
@@ -54,7 +54,7 @@ var APIdaze = (function() {
       get: function(){ return 'rtmfp://ws.apidaze.io/apidaze'; }
     },
     dev_wsurl: {
-      get: function(){ return 'ws://' + this.dev_wshostport + '/websocket'; }
+      get: function(){ return 'wss://' + this.dev_wshostport + '/websocket'; }
     },
     maxroomparticipants: {
       get: function(){ return 4; }
