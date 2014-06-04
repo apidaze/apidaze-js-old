@@ -1,8 +1,10 @@
 (function(APIdaze) {
   var LOG_PREFIX = APIdaze.name +' | '+ 'ConferenceRoom' +' | ';
 
-  var ConferenceRoom = function(webRTCClient, roomName, identifier, listeners) {
-    this.webRTCClient = webRTCClient;
+  var ConferenceRoom = function(clientInstance, roomName, identifier, listeners) {
+    this.clientType = clientInstance.client.configuration.type === "webrtc" ? "webrtc" : "flash";
+    this.webRTCClient = clientInstance.client.configuration.type === "webrtc" ? clientInstance : null;
+    this.flashClient = clientInstance.client.configuration.type === "flash" ? clientInstance : null;
     this.configuration = {};            // Valid options : videoContainerId, mode (sendrecv, recvonly)
     this.maxParticipants = APIdaze.maxroomparticipants;
     this.myAstChannelID = "";
@@ -43,6 +45,10 @@
     opts.video.mandatory.minAspectRatio = 1.77;
 
     this.configuration = APIdaze.Utils.extend({videoContainerId: "_apidaze-video-container", mode: "sendrecv"}, configuration);
+    
+    if (this.clientType !== "webrtc") {
+      throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "Method not available to non WebRTC clients");
+    }
 
     if (this.videostarted === true) {
       throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "Video offer already sent");
@@ -211,11 +217,13 @@
    * NOTE : private mode not yet implemented.
    */
   ConferenceRoom.prototype.sendMessage = function(type, astchannelto, message, from) {
+    var client = this.clientType === "webrtc" ? this.webRTCClient : this.flashClient;
+
     var tmp = {};
     tmp['command'] = "sendtext";
     tmp['type'] = "public";
     tmp['destination'] = type === "private" ? astchannelto : this.roomName;
-    tmp['apiKey'] = this.webRTCClient.configuration['apiKey'];
+    tmp['apiKey'] = client.configuration['apiKey'];
     tmp['roomname'] = this.roomName;
     tmp['from'] = typeof from !== 'undefined' ? from : this.roomIdentifier;
     tmp['astchannel'] = this.myAstChannelID;
@@ -224,7 +232,7 @@
     tmp['text'] = message;
     var msg = JSON.stringify(tmp);
 
-    this.webRTCClient.sendMessage(msg);
+    client.sendMessage(msg);
   };
 
   /**

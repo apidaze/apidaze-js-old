@@ -52,6 +52,10 @@
         } else if (message === "notalkdetected") {
           /** Special case where Asterisk sends a "notalkdetected" string */
           document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "callstate", data:"notalkdetected"});
+        } else if (JSON.parse(message).event.type.match("^confbridge")) {
+          /** events coming from the audio conference bridge */
+          var obj = JSON.parse(message);
+          document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "confbridge", data:obj.event});
         } else {
           document.querySelector("#"+domidstr.slice(0,domidstr.length-4)).handleFlashEvent({eventType: "message", data:message});
         }
@@ -103,7 +107,13 @@
     var swfurl = client.configuration.debug ? APIdaze.dev_swfurl : APIdaze.swfurl;
     var rtmp_url = client.configuration.debug ? APIdaze.dev_rtmpurl : APIdaze.rtmpurl;
     this.configuration = {};
+    this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
     this.callobj = null;                // Call object instantiated by this.call
+
+    window.onunload = function() {
+      console.log(LOG_PREFIX + "Hanging up call before closing window");
+      this.$swfElem.hangup(null);
+    };
 
     APIdaze.EventTarget.call(this);
 
@@ -216,6 +226,9 @@
         case "debug":
           this.flashAudio.fire({type:"debug", data:event.data});
           break;
+        case "confbridge":
+          flashDomElem.flashAudio.room.processEvent(event.data);
+          break;
         case "callstate":
           switch (event.data) {
             case "ringing":
@@ -307,6 +320,45 @@
     } catch(error) {
       console.log(LOG_PREFIX + "Error : " + error.message);
     }
+  };
+
+  FlashAudio.prototype.joinroom = function(params, listeners) {
+    var apiKey = this.configuration['apiKey'];
+
+    console.log(LOG_PREFIX + JSON.stringify(params));
+
+    try {
+      if (apiKey === null || apiKey === '' || typeof apiKey === "undefined") {
+        throw new APIdaze.Exceptions.InitError("API key is empty");
+      }
+
+      if (this.$swfElem.isMuted()) {
+        console.log(LOG_PREFIX + "Microphone muted");
+        this.$swfElem.showPrivacy();
+      }
+
+      var tmp = {};
+      tmp['command'] = "joinroom";
+      tmp['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
+      tmp['apiKey'] = apiKey;
+      tmp['roomname'] = params['roomName'];
+      tmp['identifier'] = params['nickName'];
+      tmp['userKeys'] = params;
+      tmp['userKeys']['apiKey'] = tmp['apiKey'];
+      tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
+
+      this.$swfElem.makeCall(JSON.stringify(tmp), null, null);
+
+      return this.room = new APIdaze.ConferenceRoom(this, params['roomName'], params['nickName'], listeners);
+
+    } catch(error) {
+      console.log(LOG_PREFIX + "Error : " + error.message);
+    }
+  };
+
+  FlashAudio.prototype.sendMessage = function(message) {
+    console.log(LOG_PREFIX + "Sending text message : " + message);
+    this.$swfElem.sendText(message, null, null);
   };
 
   FlashAudio.prototype.connect = function() {

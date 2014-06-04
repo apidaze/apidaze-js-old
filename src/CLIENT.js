@@ -113,6 +113,7 @@
         this.bind(listeners);
         return this.webRTCAV.joinroom(dest, identifier, listeners); 
       case "flash":
+        return this.flashAudio.joinroom(dest, identifier, listeners); 
       case "auto":
         throw new APIdaze.Exceptions.CallError("Method joinroom not implemented in non WebRTC channels");
       default:
