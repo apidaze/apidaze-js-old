@@ -154,7 +154,7 @@
     WebRTC.isSupported = true;
   }
   else {
-    console.log(LOG_PREFIX + "WebRTC NOT supported. Expect bad things.");
+    console.log(LOG_PREFIX + "WebRTC NOT supported.");
     WebRTC.isSupported = false;
   }
 
