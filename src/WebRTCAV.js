@@ -46,6 +46,9 @@
         console.log(LOG_PREFIX + "WebSocket closed");
         this.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_NOTREADY;
         this.client.fire({type: "disconnected", data: event.data});
+      },
+      "onAudiostats": function(event) {
+        this.client.fire({type: "audiostats", data: event.data});
       }
     });
     if (client.configuration.debug === true) {
@@ -134,14 +137,16 @@
     }
 
     if (event.type.match("^channel")) {
-      console.log(LOG_PREFIX + "Received event with info : " + event.info);
       if (event.info === 'hangup') {
         /** Grab hangup from the Gateway so we can remove the corresponding PeerConnection */
         console.log(LOG_PREFIX + "Resetting PeerConnection, deleting it first.");
        // this.resetPeerConnection();
       }
 
-      console.log(LOG_PREFIX + "Unknown channel event : " + JSON.stringify(event));
+      if (event.info.audiostats !== null) {
+        this.fire({type:"audiostats", data: event.info.audiostats});
+        return;
+      }
 
       // Pass event to the Call object
       this.callobj.processEvent(event);
