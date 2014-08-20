@@ -77,7 +77,6 @@
          */
         var json = JSON.parse(event.data);
 
-        console.log(LOG_PREFIX + "S->C : " + event.data);
         if (client.configuration.debug === true) {
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
@@ -229,6 +228,7 @@
       
       tmp['command'] = "dial";
       tmp['apiKey'] = apiKey;
+      tmp['apiVersion'] = APIdaze.version;
       tmp['userKeys'] = dest;
       tmp['userKeys']['apiKey'] = tmp['apiKey'];
       tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
@@ -253,6 +253,7 @@
     var tmp = {};
     tmp['command'] = "joinroom";
     tmp['apiKey'] = apiKey;
+    tmp['apiVersion'] = APIdaze.version;
     tmp['roomname'] = dest['roomName'];
     tmp['identifier'] = dest['nickName'];
     tmp['userKeys'] = dest;
