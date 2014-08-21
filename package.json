@@ -1,7 +1,7 @@
 {
   "name": "APIdaze",
   "title": "APIdaze JavaScript library",
-  "version": "0.2.4",
+  "version": "0.2-master",
   "devDependencies": {
     "grunt": "~0.4.1",
     "grunt-contrib-uglify": "~0.2.0",
