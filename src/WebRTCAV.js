@@ -136,15 +136,9 @@
     }
 
     if (event.type.match("^channel")) {
-      if (event.info === 'hangup') {
-        /** Grab hangup from the Gateway so we can remove the corresponding PeerConnection */
-        console.log(LOG_PREFIX + "Resetting PeerConnection, deleting it first.");
-       // this.resetPeerConnection();
-      }
-
+      console.log(LOG_PREFIX + "Received channel event with info : " + event.info);
       if (event.info.audiostats !== null) {
         this.fire({type:"audiostats", data: event.info.audiostats});
-        return;
       }
 
       // Pass event to the Call object
