@@ -160,6 +160,16 @@
     }
   };
 
+  /** Free created DOM elements */
+  CLIENT.prototype.freeDOM = function() {
+    switch(this.configuration.type) {
+      case "webrtc":
+        return this.webRTCAV.freeDOM();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function freeDOM not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
   CLIENT.prototype.WebRTCAudio = function() {
     console.log(LOG_PREFIX + "Starting WebRTCAudio");
   };

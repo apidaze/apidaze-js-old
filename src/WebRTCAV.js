@@ -435,11 +435,29 @@
         document.body.appendChild(webRTC);
       }
 
-      var length = this.remoteContainers.push(streamid);
+      var length = this.remoteContainers.push(webRTC.id);
       console.log(LOG_PREFIX + "New member added to remote containers (" + length + " members now).");
     }
 
     return webRTC.id;
+  };
+
+  WebRTCAV.prototype.freeDOM = function() {
+    var elem = document.getElementById('_apidaze-av-webrtc-local-0');
+    elem.parentNode.removeChild(elem);
+    WebRTCAVCount--;
+
+    elem = document.getElementById('_apidaze-av-webrtc-local-1');
+    elem.parentNode.removeChild(elem);
+    WebRTCAVCount--;
+
+    this.peerConnection.removeStream(this.localstream);
+
+    for (var i = 0; i < this.remoteContainers.length; i++) {
+      console.log(LOG_PREFIX + "DOM element to remove : " + this.remoteContainers[i]);
+      elem = document.getElementById(this.remoteContainers[i]);
+      elem.parentNode.removeChild(elem);
+    }
   };
 
   WebRTCAV.prototype.sendMessage = function(message) {
