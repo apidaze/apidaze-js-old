@@ -137,12 +137,14 @@
 
     if (event.type.match("^channel")) {
       console.log(LOG_PREFIX + "Received channel event with info : " + event.info);
-      if (event.info.audiostats !== null) {
+      if (typeof event.info === 'string') {
+        // Pass event to the Call object
+        console.log(LOG_PREFIX + "Passing event to call object");
+        this.callobj.processEvent(event);
+      } else if (event.info.audiostats !== null) {
+        console.log(LOG_PREFIX + "Received audiostats event");
         this.fire({type:"audiostats", data: event.info.audiostats});
       }
-
-      // Pass event to the Call object
-      this.callobj.processEvent(event);
       
       return;
     }
