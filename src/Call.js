@@ -55,6 +55,22 @@
     this.fire(newevent);
   };
 
+  /**
+   * Stop sending local audio. Avaibable for WebRTC calls only
+   */
+  Call.prototype.stopLocalAudio = function() {
+    console.log(LOG_PREFIX + "Muting our audio");
+    this.client.peerConnection.removeStream(this.client.localstream);
+  };
+
+  /**
+   * Start sending local audio. Avaibable for WebRTC calls only
+   */
+  Call.prototype.startLocalAudio = function() {
+    console.log(LOG_PREFIX + "Unmuting our audio");
+    this.client.peerConnection.addStream(this.client.localstream);
+  };
+
   APIdaze.Call = Call;
 
 }(APIdaze));
