@@ -270,6 +270,7 @@
         // Just set my Asterisk channel identifier
         console.log(LOG_PREFIX + "My channel identifier in room " + event.room + " : " + event.identifier);
         this.myAstChannelID = event.identifier;
+        this.fire({type: "confbridgewelcome", data: JSON.stringify({room: event.room, channel: event.identifier})});
         break;
       case "confbridgejoin":
         console.log(LOG_PREFIX + "Someone (" + event.channel + ") entered room " + event.room + ".");
