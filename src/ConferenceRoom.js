@@ -17,6 +17,7 @@
     this.videoOfferNum = 0;
     this.videoBridgeMsid = "";          // Video stream ID set by the videoBridge when empty. Must be replaced by user's stream id
     this.myVideoBridgeSSRC = "";        // The SSRC of the video stream published by this instance
+    this.myVideoBridgeSSRCS = "";       // The SSRC group of the video stream published by this instance
     this.myVideoBridgeChannelID = "";   // The Channel ID of this instance on the video bridge
     this.roomastchannick = {};          // An associative array that matches nicknames with Asterisk Channels
     this.videostarted = false;
@@ -294,9 +295,10 @@
         console.log(LOG_PREFIX + "Video members : " + JSON.stringify(event.members));
         for (var i in event.members) {
           if (event.members[i].channel === this.myAstChannelID) {
-            console.log(LOG_PREFIX + "My SSRC on the video bridge : " + event.members[i].ssrc);
+            console.log(LOG_PREFIX + "My SSRC group on the video bridge : " + event.members[i].ssrc_group);
             console.log(LOG_PREFIX + "My channel ID on the video bridge : " + event.members[i].msid);
             this.myVideoBridgeSSRC = event.members[i].ssrc;
+            this.myVideoBridgeSSRCS = event.members[i].ssrc_group.split(" ");
             this.myVideoBridgeChannelID = event.members[i].msid;
             break;
           }
@@ -338,25 +340,33 @@
         console.log(LOG_PREFIX + "Got new SSRC for this conference : " + event.ssrc);
         if (this.localVideoSDP.indexOf(event.ssrc) === -1) {
           console.log(LOG_PREFIX + "Looks like someone is publishing video in this room");  
+          if (this.remoteVideoSDP.indexOf("a=ssrc:" + event.ssrc) > 0) {
+            console.log(LOG_PREFIX + "SSRC already known here, no need to add it twice");
+            break;
+          }
           this.localVideoSDP = this.localVideoSDP.replace(/a=crypto.*\r\n/, "");
           console.log(LOG_PREFIX + "Local SDP : " + this.localVideoSDP);
           console.log(LOG_PREFIX + "this.videoOfferNum : " + this.videoOfferNum);
           if (this.videoOfferNum === 1) {
-            // First update of the video peers
-            this.remoteVideoSDP = this.remoteVideoSDP.replace(/1874557016/g, event.ssrc);
-            this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 1 IN IP4 195.5.246.235/g, "o=APIdaze 1 2 IN IP4 195.5.246.235");
-            this.remoteVideoSDP = this.remoteVideoSDP.replace(/34IQ1WaD8ZmokM24/g, event.msid);
-            this.videoOfferNum ++;
-          } else {
-            // Add new SDP attributes for this stream
-            this.videoOfferNum ++;
-            this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
-            var newssrc =   "a=ssrc:" + event.ssrc + " cname:" + event.msid + "\r\n" +
-              "a=ssrc:" + event.ssrc + " msid:" + event.msid + " " + event.msid + "v0\r\n" +
-              "a=ssrc:" + event.ssrc + " mslabel:" + event.msid + "\r\n" +
-              "a=ssrc:" + event.ssrc + " label:" + event.msid + "v0\r\n";
-            this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, newssrc + "a=sendrecv\r\n");
+            // First update of the video peers, simply remove the SSRC lines we received initially from the MCU
+            var newregex = new RegExp("a=ssrc:1874557016.*\r\n", "g");
+            this.remoteVideoSDP = this.remoteVideoSDP.replace(newregex, "");
           }
+          // Add new SDP attributes for this stream
+          this.videoOfferNum ++;
+          this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
+          // We receive two SSRCs as an ssrc-group SDP attribute here
+          var ssrcs = event.ssrc_group.split(" ");
+          var ssrclist =  "a=ssrc-group:FID " + event.ssrc_group + "\r\n" +
+                          "a=ssrc:" + ssrcs[0] + " cname:" + event.msid + "\r\n" +
+                          "a=ssrc:" + ssrcs[0] + " msid:" + event.msid + " " + event.msid + "v0\r\n" +
+                          "a=ssrc:" + ssrcs[0] + " mslabel:" + event.msid + "\r\n" +
+                          "a=ssrc:" + ssrcs[0] + " label:" + event.msid + "v0\r\n" +
+                          "a=ssrc:" + ssrcs[1] + " cname:" + event.msid + "\r\n" +
+                          "a=ssrc:" + ssrcs[1] + " msid:" + event.msid + " " + event.msid + "v0\r\n" +
+                          "a=ssrc:" + ssrcs[1] + " mslabel:" + event.msid + "\r\n" +
+                          "a=ssrc:" + ssrcs[1] + " label:" + event.msid + "v0\r\n";
+          this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, ssrclist + "a=sendrecv\r\n");
 
           console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
           this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
