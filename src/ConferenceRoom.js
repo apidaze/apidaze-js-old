@@ -322,7 +322,7 @@
       case "confbridgeleftssrc":
         console.log(LOG_PREFIX + "Need to remove SSRC for this conference : " + event.ssrc);
         this.videoOfferNum ++;
-        this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
+        this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 188.165.194.117/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 188.165.194.117");
         this.localVideoSDP = this.localVideoSDP.replace(/a=crypto.*\r\n/, "");
         var regex = new RegExp("a=ssrc:" + event.ssrc + " .*\r\n", "g");
         this.remoteVideoSDP = this.remoteVideoSDP.replace(regex, "");
@@ -354,7 +354,7 @@
           }
           // Add new SDP attributes for this stream
           this.videoOfferNum ++;
-          this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
+          this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 188.165.194.117/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 188.165.194.117");
           // We receive two SSRCs as an ssrc-group SDP attribute here
           var ssrcs = event.ssrc_group.split(" ");
           var ssrclist =  "a=ssrc-group:FID " + event.ssrc_group + "\r\n" +
@@ -385,7 +385,7 @@
         break;
       case "confbridgevideostatusupdate":
         this.videoOfferNum ++;
-        this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 195.5.246.235/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 195.5.246.235");
+        this.remoteVideoSDP = this.remoteVideoSDP.replace(/o=APIdaze 1 [0-9]+ IN IP4 188.165.194.117/g, "o=APIdaze 1 " + this.videoOfferNum + " IN IP4 188.165.194.117");
 
         if (event.status === "recvonly") {
           this.localVideoSDP = this.localVideoSDP.replace(/a=crypto.*\r\n/, "");
