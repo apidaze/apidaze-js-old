@@ -129,7 +129,8 @@
            * and the JavaScript program. */
           console.log(LOG_PREFIX + "No more ICE candidate");
           self.webRTCClient.status = self.webRTCClient.status * APIdaze.WebRTCAV.CONSTANTS.STATUS_CANDIDATES_RECEIVED;
-          self.webRTCClient.client.fire({type: "ready", data: "none"});
+          // Do we need fo fire this one ?
+          // self.webRTCClient.client.fire({type: "ready", data: "none"});
           self.localVideoSDP = self.videoPeerConnection.localDescription.sdp;
           console.log(LOG_PREFIX + "Local video SDP : " + self.localVideoSDP);
           var tmp = {};
