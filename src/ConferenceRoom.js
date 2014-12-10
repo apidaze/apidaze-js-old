@@ -299,9 +299,10 @@
             console.log(LOG_PREFIX + "My SSRC group on the video bridge : " + event.members[i].ssrc_group);
             console.log(LOG_PREFIX + "My channel ID on the video bridge : " + event.members[i].msid);
             this.myVideoBridgeSSRC = event.members[i].ssrc;
-            this.myVideoBridgeSSRCS = event.members[i].ssrc_group.split(" ");
+            if (event.members[i].ssrc_group !== "undefined") {
+              this.myVideoBridgeSSRCS = event.members[i].ssrc_group.split(" ");
+            }
             this.myVideoBridgeChannelID = event.members[i].msid;
-            break;
           }
         }
         this.fire({type: "confbridgevideomembers", data: JSON.stringify({room: this.roomName, members: event.members})});
