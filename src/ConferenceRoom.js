@@ -299,7 +299,7 @@
             console.log(LOG_PREFIX + "My SSRC group on the video bridge : " + event.members[i].ssrc_group);
             console.log(LOG_PREFIX + "My channel ID on the video bridge : " + event.members[i].msid);
             this.myVideoBridgeSSRC = event.members[i].ssrc;
-            if (event.members[i].ssrc_group !== "undefined") {
+            if (typeof event.members[i].ssrc_group !== "undefined") {
               this.myVideoBridgeSSRCS = event.members[i].ssrc_group.split(" ");
             }
             this.myVideoBridgeChannelID = event.members[i].msid;
