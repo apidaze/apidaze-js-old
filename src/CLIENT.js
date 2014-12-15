@@ -14,6 +14,7 @@
       // Default options
       debug: false,
       sounddetect: false,
+      unsafe: false,        // WebRTC only : connect WebSocket over ws rather than wss
       type: "auto",
       apiKey: "none"
     };

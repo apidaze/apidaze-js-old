@@ -23,6 +23,11 @@
     this.status = CONSTANTS.STATUS_INIT;
     this.wsurl = client.configuration.debug ? APIdaze.dev_wsurl : APIdaze.wsurl;
 
+    if (client.configuration.unsafe === true) {
+      console.log(LOG_PREFIX + "Careful, we're connecting the WebSocket over an unencrypted connection!");
+      this.wsurl = this.wsurl.replace("wss", "ws").replace("8089", "8088");
+    }
+
     APIdaze.EventTarget.call(this);
 
     var plugin = this;
