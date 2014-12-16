@@ -310,6 +310,7 @@
       case "confbridgevideostreams":
         // First anwer to our getVideoStreams command
         this.remoteVideoSDP = event.sdp;
+        this.remoteVideoSDP = APIdaze.Utils.cleanUpSDP(this.remoteVideoSDP);
         this.videoPeerConnection.setRemoteDescription(
             new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:event.sdp}),
             function() {
@@ -369,6 +370,7 @@
                           "a=ssrc:" + ssrcs[1] + " mslabel:" + event.msid + "\r\n" +
                           "a=ssrc:" + ssrcs[1] + " label:" + event.msid + "v0\r\n";
           this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, ssrclist + "a=sendrecv\r\n");
+          this.remoteVideoSDP = APIdaze.Utils.cleanUpSDP(this.remoteVideoSDP);
 
           console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
           this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
@@ -393,6 +395,7 @@
           this.localVideoSDP = this.localVideoSDP.replace(/a=crypto.*\r\n/, "");
           regex = new RegExp("a=ssrc:" + event.ssrc + " .*\r\n", "g");
           this.remoteVideoSDP = this.remoteVideoSDP.replace(regex, "");
+          this.remoteVideoSDP = APIdaze.Utils.cleanUpSDP(this.remoteVideoSDP);
           console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
 
           this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
@@ -407,6 +410,7 @@
                           "a=ssrc:" + event.ssrc + " mslabel:" + event.msid + "\r\n" +
                           "a=ssrc:" + event.ssrc + " label:" + event.msid + "v0\r\n";
           this.remoteVideoSDP = this.remoteVideoSDP.replace(/a=sendrecv\r\n/g, tempssrc + "a=sendrecv\r\n");
+          this.remoteVideoSDP = APIdaze.Utils.cleanUpSDP(this.remoteVideoSDP);
           console.log(LOG_PREFIX + "Remote SDP : " + this.remoteVideoSDP);
           this.videoPeerConnection.setLocalDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"offer", sdp:this.localVideoSDP}));
           this.videoPeerConnection.setRemoteDescription(

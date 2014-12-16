@@ -78,6 +78,11 @@
       return obj;
     },
 
+    cleanUpSDP:
+      function(sdpString) {
+        // For some reason, we sometimes get this from the VideoBridge, clean it up !
+        return sdpString.replace("a=ssrc: cname:\r\n", "").replace("a=ssrc: msid: v0\r\n", "").replace("a=ssrc: mslabel:\r\n", "").replace("a=ssrc: label:v0\r\n");
+      },
     extend: function() {
       for(var i=1; i<arguments.length; i++) {
         for(var key in arguments[i]) {
