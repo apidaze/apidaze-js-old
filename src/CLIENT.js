@@ -161,6 +161,42 @@
     }
   };
 
+  CLIENT.prototype.muteAudioMic = function() {
+    switch(this.configuration.type) {
+      case "webrtc":
+        return this.webRTCAV.muteAudioMic();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function muteAudioMic not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
+  CLIENT.prototype.unMuteAudioMic = function() {
+    switch(this.configuration.type) {
+      case "webrtc":
+        return this.webRTCAV.unMuteAudioMic();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function unMuteAudioMic not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
+  CLIENT.prototype.muteAudioOut = function() {
+    switch(this.configuration.type) {
+      case "webrtc":
+        return this.webRTCAV.muteAudioOut();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function muteAudioOut not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
+  CLIENT.prototype.unMuteAudioOut = function() {
+    switch(this.configuration.type) {
+      case "webrtc":
+        return this.webRTCAV.unMuteAudioOut();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function unMuteAudioOut not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
   /** Free created DOM elements */
   CLIENT.prototype.freeDOM = function() {
     switch(this.configuration.type) {

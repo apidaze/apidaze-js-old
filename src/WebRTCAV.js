@@ -449,6 +449,46 @@
     return webRTC.id;
   };
 
+  WebRTCAV.prototype.muteAudioMic = function() {
+    var i = 0;
+    for (i = 0; i < this.localstream.getAudioTracks().length; i++){
+      console.log(LOG_PREFIX + "Muting audio tracks locally");
+      this.localstream.getAudioTracks()[i].enabled = false;
+    }
+  };
+
+  WebRTCAV.prototype.unMuteAudioMic = function() {
+    var i = 0;
+    for (i = 0; i < this.localstream.getAudioTracks().length; i++){
+      console.log(LOG_PREFIX + "Un-muting audio tracks locally");
+      this.localstream.getAudioTracks()[i].enabled = true;
+    }
+  };
+
+  WebRTCAV.prototype.muteAudioOut = function() {
+    var allVideos = document.getElementsByTagName("video");
+    var i = 0;
+    for (i = 0; i < allVideos.length; i++) {
+      var id = allVideos[i].id;
+      if (id.slice(0, "_apidaze-audio-webrtc-remote-".length) === "_apidaze-audio-webrtc-remote-") {
+        console.log(LOG_PREFIX + "DOM id of element to mute : " + id);
+        allVideos[i].muted = true;
+      }
+    }
+  };
+
+  WebRTCAV.prototype.unMuteAudioOut = function() {
+    var allVideos = document.getElementsByTagName("video");
+    var i = 0;
+    for (i = 0; i < allVideos.length; i++) {
+      var id = allVideos[i].id;
+      if (id.slice(0, "_apidaze-audio-webrtc-remote-".length) === "_apidaze-audio-webrtc-remote-") {
+        console.log(LOG_PREFIX + "DOM id of element to unmute : " + id);
+        allVideos[i].muted = false;
+      }
+    }
+  };
+
   WebRTCAV.prototype.freeDOM = function() {
     var elem = document.getElementById('_apidaze-av-webrtc-local-0');
     elem.parentNode.removeChild(elem);
