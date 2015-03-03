@@ -115,7 +115,10 @@
 
     console.log(LOG_PREFIX + "Creating VideoPeerConnection...");
     try {
-      this.videoPeerConnection = new APIdaze.WebRTC.RTCPeerConnection(pc_config, {'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true}});
+      this.videoPeerConnection = new APIdaze.WebRTC.RTCPeerConnection(pc_config, {
+        'mandatory': {'OfferToReceiveAudio':false, 'OfferToReceiveVideo':true},
+        "optional": [{"DtlsSrtpKeyAgreement": true}, {"googIPv6": false}]
+      });
 
        /* Create various callback functions, the most important
         * being onicecandidate as we send our SDP offer once

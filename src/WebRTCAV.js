@@ -306,7 +306,7 @@
     var plugin = this;
     var pc_config = {"iceServers": []};
     var pc_constraints = {
-                          "optional": [{"DtlsSrtpKeyAgreement": true}], 
+                          "optional": [{"DtlsSrtpKeyAgreement": true}, {"googIPv6": false}],
                           "mandatory":  { 'OfferToReceiveAudio':true,  'OfferToReceiveVideo':false}
                          };
 
