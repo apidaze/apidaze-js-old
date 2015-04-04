@@ -46,6 +46,7 @@
     this.bind({
       "onConnected": function(){
         console.log(LOG_PREFIX + "WebSocket connected");
+        this.client.fire({type: "connected", data: event.data});
       },
       "onDisconnected": function(event){
         console.log(LOG_PREFIX + "WebSocket closed");
