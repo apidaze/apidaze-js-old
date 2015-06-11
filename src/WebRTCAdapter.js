@@ -74,7 +74,7 @@
 
     WebRTC.webrtcDetectedBrowser = "chrome";
     WebRTC.webrtcDetectedVersion = parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10);
-    WebRTC.URL = window.webkitURL;
+    WebRTC.URL = window.URL;
 
     // For pre-M28 chrome versions use old turn format, else use the new format.
     if (WebRTC.webrtcDetectedVersion < 28) {
