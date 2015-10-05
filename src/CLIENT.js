@@ -207,6 +207,15 @@
     }
   };
 
+  CLIENT.prototype.freeALL = function() {
+    switch(this.configuration.type) {
+      case "webrtc":
+        return this.webRTCAV.freeALL();
+      default:
+        throw new APIdaze.Exceptions.ClientError("Function freeALL not available for " + this.configuration.type + " configuration mode");
+    }
+  };
+
   CLIENT.prototype.WebRTCAudio = function() {
     console.log(LOG_PREFIX + "Starting WebRTCAudio");
   };
