@@ -525,9 +525,7 @@
       elem.parentNode.removeChild(elem);
     }
 
-    this.peerConnection.oniceconnectionstatechange = null;
-    this.peerConnection.onsignalingstatechange = null;
-    this.peerConnection.onicecandidate = null;
+    this.peerConnection.close();
     this.peerConnection = null;
   };
 
