@@ -508,6 +508,29 @@
     }
   };
 
+  WebRTCAV.prototype.freeALL = function() {
+    var elem = document.getElementById('_apidaze-av-webrtc-local-0');
+    elem.parentNode.removeChild(elem);
+    WebRTCAVCount--;
+
+    elem = document.getElementById('_apidaze-av-webrtc-local-1');
+    elem.parentNode.removeChild(elem);
+    WebRTCAVCount--;
+
+    this.peerConnection.removeStream(this.localstream);
+
+    for (var i = 0; i < this.remoteContainers.length; i++) {
+      console.log(LOG_PREFIX + "DOM element to remove : " + this.remoteContainers[i]);
+      elem = document.getElementById(this.remoteContainers[i]);
+      elem.parentNode.removeChild(elem);
+    }
+
+    this.peerConnection.oniceconnectionstatechange = null;
+    this.peerConnection.onsignalingstatechange = null;
+    this.peerConnection.onicecandidate = null;
+    this.peerConnection = null;
+  };
+
   WebRTCAV.prototype.sendMessage = function(message) {
     this.socket.send(message);
     console.log(LOG_PREFIX + "C->S : " + message);
