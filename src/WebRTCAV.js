@@ -25,7 +25,7 @@
 
     if (client.configuration.unsafe === true) {
       console.log(LOG_PREFIX + "Careful, we're connecting the WebSocket over an unencrypted connection!");
-      this.wsurl = this.wsurl.replace("wss", "ws").replace("8089", "8088");
+      this.wsurl = this.wsurl.replace("wss", "ws").replace("8082", "8081");
     }
 
     APIdaze.EventTarget.call(this);
@@ -46,6 +46,13 @@
     this.bind({
       "onConnected": function(){
         console.log(LOG_PREFIX + "WebSocket connected");
+
+        var request = {};
+        request.wsp_version = "1";
+        request.method = "ping";
+        request.params = {};
+        this.sendMessage(JSON.stringify(request));
+
         this.client.fire({type: "connected", data: event.data});
       },
       "onDisconnected": function(event){
@@ -69,7 +76,7 @@
     }
 
     try {
-      this.socket = new WebSocket(this.wsurl + "?apiKey=" + this.configuration.apiKey + "?token=" + this.configuration.token, "webrtc");
+      this.socket = new WebSocket(this.wsurl);
       this.socket.addEventListener("open", function() {
         plugin.fire({type:"connected", data:"none"});
       });
@@ -87,79 +94,139 @@
           console.log(LOG_PREFIX + "S->C : " + event.data);
         }
 
-        if (json.type && json.type === "answer" && json.command === "getVideoStreamReply" && json.sdp) {
-          // Build a confbridge event out of videoBridge answer, and process it in the room object
-          if (client.configuration.debug === true) {
-            console.log(LOG_PREFIX + "Got SDP from video MCU : " + json.sdp.replace(/\|/g, "\r\n"));
+        if (json.result) {
+          // Process reponse after request from gateway
+          if (json.result.message) {
+            switch (json.result.message) {
+              case "pong":
+                plugin.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_READY;
+                plugin.client.sessid = json.result.sessid;
+                plugin.client.fire({type: "ready", data: event.data});
+                return;
+              default:
+                break;
+            }
           }
-          json.sdp = json.sdp.replace(/\|/g, "\r\n");
-          var newevent = {};
-          newevent.type = "confbridgevideostreams";
-          newevent.sdp = json.sdp;
-          plugin.processEvent(newevent);
+        }
 
-        } else if (json.type && json.type === "answer" && json.sdp) {
-          console.log(LOG_PREFIX + "json.type : " + json.type);
-          console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          plugin.peerConnection.setRemoteDescription(
-              new APIdaze.WebRTC.RTCSessionDescription({type:json.type, sdp:json.sdp}),
-              function() { console.log('Remote description set, SDP : ' + plugin.peerConnection.remoteDescription.sdp);},
-              function(error) {
-                console.log(error.name + ' : ' + error.message);
-                // Mozilla error prototype : {name, message}
-                for(var propertyName in error) {
-
-                  console.log('Property in error : ' + propertyName);  
-                }
-              }
-          );
+        /**
+         * Process SDP answer from gateway WebRTC client
+         *
+         * SDP can be retrieved from the gateway in "answer", "ringing" and "media" messages
+         */
+        if (json.method && json.method === "answer" && json.params && json.params.sdp) {
+          console.log(LOG_PREFIX + "json.method : " + json.method);
+          console.log(LOG_PREFIX + "json.params.sdp : " + json.params.sdp);
+          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:json.params.sdp}));
           console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
-        } else if (json.event) {
-            plugin.processEvent(json.event);
+        } else if(json.method && json.method === "ringing" && json.params && json.params.sdp) {
+          console.log(LOG_PREFIX + "json.method : " + json.method);
+          console.log(LOG_PREFIX + "json.params.sdp : " + json.params.sdp);
+          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:json.params.sdp}));
+          console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
+          plugin.processEvent(json);
+        } else if(json.method && json.method === "media" && json.params && json.params.sdp) {
+          console.log(LOG_PREFIX + "json.method : " + json.method);
+          console.log(LOG_PREFIX + "json.params.sdp : " + json.params.sdp);
+          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:json.params.sdp}));
+          console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
+          json.method = "ringing";
+          plugin.processEvent(json);
         } else {
-          plugin.fire({type:"message", data:event.data});
+          plugin.processEvent(json);
         }
       });
     } catch(e) {
       throw new APIdaze.Exceptions.InitError("Failed to initialize WebSocket to " + this.wsurl);
-    }
-
-    try {
-      this.getUserMedia(this.configuration);
-    } catch(e) {
-      throw e;
     }
   };
 
   WebRTCAV.prototype = new APIdaze.EventTarget();
 
   WebRTCAV.prototype.processEvent = function(event) {
-
-    if (event.type.match("^confbridge")) {
-      // Pass event to the ConferenceRoom object
-      this.room.processEvent(event);
-      return;
-    }
-
-    if (event.type.match("^channel")) {
-      console.log(LOG_PREFIX + "Received channel event with info : " + event.info);
-      if (typeof event.info === 'string') {
-        // Pass event to the Call object
-        console.log(LOG_PREFIX + "Passing event to call object");
+    console.log(LOG_PREFIX + "Processing event : " + JSON.stringify(event));
+    if (event.result) {
+      console.log(LOG_PREFIX + "typeof event.result.subscribedChannels : " + typeof event.result.subscribedChannels);
+      if (typeof event.result.subscribedChannels === "object") {
+        console.log(LOG_PREFIX + "We have an array of subscribed channels here.");
         this.callobj.processEvent(event);
-      } else if (event.info.audiostats !== null) {
-        console.log(LOG_PREFIX + "Received audiostats event");
-        this.fire({type:"audiostats", data: event.info.audiostats});
       }
-      
-      return;
-    }
 
-    switch (event.type) {
-      default:
-        console.log(LOG_PREFIX + "Unknown event : " + JSON.stringify(event));
-        console.log("Event type : " + event.type);
-        break;
+      console.log(LOG_PREFIX + "event.id : " + event.id);
+      if (event.id === "conference_list_command") {
+        // The answer that lists the members of the conference we've joined
+        console.log(LOG_PREFIX + "Members : " + event.result.message);
+        this.callobj.processEvent(event);
+      }
+    } else if (event.method) {
+      switch (event.method) {
+        case "answer":
+        case "ringing":
+        case "hangup":
+          // Pass event to the Call object
+          this.callobj.processEvent(event);
+          break;
+        case "event":
+          if (event.params === null) {
+            console.log(LOG_PREFIX + "Cannot process event : " + JSON.stringify(event));
+            break;
+          }
+
+          if (event.params.data && event.params.data.action) {
+            switch (event.params.data.action) {
+              case "add":
+                console.log(LOG_PREFIX + "New member joined the conference");
+                this.callobj.processEvent(event);
+                break;
+              case "del":
+                console.log(LOG_PREFIX + "New member left the conference");
+                this.callobj.processEvent(event);
+                break;
+              case "modify":
+                console.log(LOG_PREFIX + "Modify event");
+                this.callobj.processEvent(event);
+                break;
+            }
+          }
+
+          if (event.params.pvtData && event.params.pvtData.action) {
+            switch (event.params.pvtData.action) {
+              case "conference-liveArray-join":
+                console.log(LOG_PREFIX + "Someone with id " + event.params.eventChannel + " joined conference " + event.params.pvtData.laName);
+                console.log(LOG_PREFIX + "Is it me you're looking for ? My sessid : " + this.client.sessid);
+                var request = {};
+                request.wsp_version = "1";
+                request.method = "jsapi";
+                request.id = "conference_list_command";
+                request.params = {
+                  command: "fsapi",
+                  data: {
+                    cmd: "conference",
+                    arg: event.params.pvtData.laName + " list"
+                  }
+                };
+                this.sendMessage(JSON.stringify(request));
+
+                request = {};
+                request.wsp_version = "1";
+                request.method = "verto.subscribe";
+                request.id = "subscribe_message";
+                request.params = {
+                  eventChannel: event.params.pvtData.laChannel,
+                  subParams: {}
+                };
+                this.sendMessage(JSON.stringify(request));
+                break;
+              default:
+                break;
+            }
+          }
+          break;
+        default:
+          console.log(LOG_PREFIX + "Unknown event : " + JSON.stringify(event));
+          console.log("Event type : " + event.method);
+          break;
+      }
     }
   };
 
@@ -167,57 +234,24 @@
     this.socket.close(); 
   };
 
-  WebRTCAV.prototype.connect = function() {
-    var plugin = this;
-
-    try {
-      this.socket = new WebSocket(APIdaze.wsurl + "?apiKey=" + this.configuration.apiKey, "webrtc");
-      this.socket.addEventListener("open", function() {
-        plugin.fire({type:"connected", data:"none"});
-      });
-      this.socket.addEventListener("close", function() {
-        plugin.fire({type:"disconnected", data:"none"});
-      });
-      this.socket.addEventListener("message", function(event) {
-        /**
-         * Process signalling messages internally, and send others
-         * to external handlers
-         */
-        var json = JSON.parse(event.data);
-
-        if (plugin.client.configuration.debug === true) {
-          console.log(LOG_PREFIX + "S->C : " + event.data);
-        }
-
-        if (json.type && json.type === "answer" && json.command === "getvideostream" && json.sdp) {
-          // Reply to a getvideostream command
-          // Create an event and pass it to the ConferenceRoom instance
-          console.log(LOG_PREFIX + "json.type : " + json.type);
-          console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          var tmpevent = {type: "confbridgegetvideostream", identifier: json.channel, sdp: json.sdp};
-          plugin.processEvent(tmpevent);
-           
-        } else if (json.type && json.type === "answer" && json.sdp) {
-          console.log(LOG_PREFIX + "json.type : " + json.type);
-          console.log(LOG_PREFIX + "json.sdp : " + json.sdp);
-          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:json.type, sdp:json.sdp}));
-          console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
-        } else if (json.event) {
-            plugin.processEvent(json.event);
-        } else {
-          plugin.fire({type:"message", data:event.data});
-        }
-      });
-    } catch(e) {
-      throw new APIdaze.Exceptions.InitError("Failed to initialize WebSocket to " + APIdaze.wsurl);
-    }
-
-  };
-
   WebRTCAV.prototype.call = function(dest, listeners) {
     this.bind(listeners);
-    var tmp = {};
     var apiKey = this.configuration['apiKey'];
+    this.configuration.request = {};
+    var request = this.configuration.request;
+    request.wsp_version = "1";
+    request.method = "call";
+    request.params = {
+      apiKey : apiKey,
+      apiVersion : APIdaze.version,
+      userKeys : dest
+    };
+
+    try {
+      this.getUserMedia(this.configuration);
+    } catch(e) {
+      throw new APIdaze.Exceptions.InitError("Failed to get user media");
+    }
 
     try {
       if (APIdaze.WebRTC.isSupported !== true) {
@@ -227,18 +261,7 @@
       if (apiKey === null || apiKey === '' || typeof apiKey === "undefined") {
         throw new APIdaze.Exceptions.InitError("API key is empty");
       }
-      
-      tmp['command'] = "dial";
-      tmp['apiKey'] = apiKey;
-      tmp['apiVersion'] = APIdaze.version;
-      tmp['userKeys'] = dest;
-      tmp['userKeys']['apiKey'] = tmp['apiKey'];
-      tmp['userKeys']['sounddetect'] = this.configuration['sounddetect'] ? "yes" : "no";
-      tmp['type'] = "offer";
-      tmp['sdp'] = this.peerConnection.localDescription.sdp;
-      var message = JSON.stringify(tmp);
-    
-      this.sendMessage(message);
+
     } catch (e) {
       console.log(LOG_PREFIX + "Exception received : " + e.message);
     }
@@ -282,14 +305,13 @@
           APIdaze.WebRTC.attachMediaStream(container, stream);
           plugin.localstream = stream;
           plugin.status *= CONSTANTS.STATUS_LOCALSTREAM_ATTACHED;
-          plugin.client.status = APIdaze.CLIENT.CONSTANTS.STATUS_READY;
           console.log(LOG_PREFIX + "getUserMedia called successfully");
         } catch(error) {
           throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia failed with error : " + error.message);
         }
         
         try {
-          plugin.createPeerConnection();
+          plugin.createPeerConnection(options.request);
         } catch(error) {
           throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "createPeerConnection failed with error : " + error.message);
         }
@@ -303,7 +325,7 @@
     );
   };
 
-  WebRTCAV.prototype.createPeerConnection = function() {
+  WebRTCAV.prototype.createPeerConnection = function(request) {
     var plugin = this;
     var pc_config = {"iceServers": []};
     var pc_constraints = {
@@ -326,7 +348,8 @@
         } else {
           console.log(LOG_PREFIX + "No more ICE candidate");
           plugin.status = plugin.status * CONSTANTS.STATUS_CANDIDATES_RECEIVED;
-          plugin.client.fire({type: "ready", data: "none"});
+          request.params.sdp = plugin.peerConnection.localDescription.sdp;
+          plugin.sendMessage(JSON.stringify(request));
         }
       };
 
@@ -516,6 +539,10 @@
     elem = document.getElementById('_apidaze-av-webrtc-local-1');
     elem.parentNode.removeChild(elem);
     WebRTCAVCount--;
+
+    if (this.peerConnection === null || typeof this.peerConnection === "undefined" || this.peerConnection.removeStream === null || typeof this.peerConnection.removeStream === "undefined") {
+      return;
+    }
 
     this.peerConnection.removeStream(this.localstream);
 

@@ -18,7 +18,7 @@ var APIdaze = (function() {
       get: function(){ return 'ws2.apidaze.io:81'; }
     },
     wshostport: {
-      get: function(){ return 'ws2.apidaze.io:8089'; }
+      get: function(){ return 'ws2.apidaze.io:8082'; }
     },
     swfurl: {
       get: function(){ return 'http://' + this.flashhostport + '/apidaze/apidaze.swf'; }
@@ -39,7 +39,7 @@ var APIdaze = (function() {
       get: function(){ return 'ws2.apidaze.io:81'; }
     },
     dev_wshostport: {
-      get: function(){ return 'ws2.apidaze.io:8089'; }
+      get: function(){ return 'ws2.apidaze.io:8082'; }
     },
     dev_swfurl: {
       get: function(){ return 'http://' + this.dev_flashhostport + '/rtmp/apidaze.swf'; }

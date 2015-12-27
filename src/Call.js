@@ -25,11 +25,11 @@
     console.log(LOG_PREFIX + "Hanging up call");
     switch(this.client.configuration.type) {
       case "webrtc":
-        var tmp = {};
-        tmp['command'] = "hangup";
-        tmp['apiKey'] = this.client.configuration['apiKey'];
-        tmp['userKeys'] = {"command":"hangup"};
-        this.client.sendMessage(JSON.stringify(tmp));
+        var request = {};
+        request.wsp_version = "1";
+        request.method = "hangup";
+        request.params = {};
+        this.client.sendMessage(JSON.stringify(request));
         break;
       case "flash":
         try {
@@ -44,15 +44,44 @@
   };
 
   Call.prototype.processEvent = function(event) {
-    console.log(LOG_PREFIX + "Received event with info : " + event.info);
-  
+    console.log(LOG_PREFIX + "Received event with info : " + event.method);
+    console.log(LOG_PREFIX + "Received event with result : " + event.result);
+ 
     /**
      * event example : {"event": {"type": "channel", "info": "ringing"}}
      * We build a new event out of this one with a single type field
      */
-    var newevent = {type: event.info};
+    if (event.result && typeof event.result.subscribedChannels === "object") {
+      this.fire({type: "roominit"});
+    } else if (event.result && event.id === "conference_list_command") {
+      var index;
+      var lines = event.result.message.split('\n');
+      var members = [];
+      for (index = 0; index < lines.length - 1; index++) {
+        var elems = lines[index].split(';');
+        members.push({sessid: elems[2], nickname: elems[3], caller_id_number: elems[4]});
+      }
+      this.fire({type: "roommembers", members: members});
+    } else if (event.params && event.params.data && event.params.data.action) {
+      switch (event.params.data.action) {
+        case "add":
+          console.log(LOG_PREFIX + "Adding member");
+          this.fire({type: "joinedroom", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1]}});
+          break;
+        case "del":
+          console.log(LOG_PREFIX + "Removing member");
+          this.fire({type: "leftroom", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1]}});
+          break;
+        case "modify":
+          console.log(LOG_PREFIX + "Modify event");
+          var status = JSON.parse(event.params.data.data[4]);
+          this.fire({type: "talking", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1], talking: status.audio.talking}});
+          break;
+      }
 
-    this.fire(newevent);
+    } else {
+      this.fire({type: event.method});
+    }
   };
 
   /**
