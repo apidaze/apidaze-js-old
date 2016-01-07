@@ -22,13 +22,15 @@
   };
 
   Call.prototype.hangup = function() {
-    console.log(LOG_PREFIX + "Hanging up call");
+    console.log(LOG_PREFIX + "Hanging up call with id : " + this.callID);
     switch(this.client.configuration.type) {
       case "webrtc":
         var request = {};
         request.wsp_version = "1";
         request.method = "hangup";
-        request.params = {};
+        request.params = {
+          callID: this.callID
+        };
         this.client.sendMessage(JSON.stringify(request));
         break;
       case "flash":
@@ -51,7 +53,17 @@
      * event example : {"event": {"type": "channel", "info": "ringing"}}
      * We build a new event out of this one with a single type field
      */
-    if (event.result && typeof event.result.subscribedChannels === "object") {
+    if (event.result && event.result.message) {
+      console.log(LOG_PREFIX + "Received event with message : " + event.result.message);
+      switch (event.result.message) {
+        case "CALL CREATED":
+          console.log(LOG_PREFIX + "Setting callID to this call to " + event.result.callID);
+          this.callID = event.result.callID;
+          break;
+        default:
+          break;
+      }
+    } else if (event.result && typeof event.result.subscribedChannels === "object") {
       this.fire({type: "roominit"});
     } else if (event.result && event.id === "conference_list_command") {
       var index;
