@@ -158,6 +158,10 @@
         console.log(LOG_PREFIX + "Members : " + event.result.message);
         this.callobj.processEvent(event);
       }
+
+      if (event.result.message) {
+        this.callobj.processEvent(event);
+      }
     } else if (event.method) {
       switch (event.method) {
         case "answer":
@@ -234,6 +238,16 @@
     this.socket.close(); 
   };
 
+  WebRTCAV.prototype.guid = function() {
+    function s4() {
+      return Math.floor((1 + Math.random()) * 0x10000)
+        .toString(16)
+        .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+      s4() + '-' + s4() + s4() + s4();
+  };
+
   WebRTCAV.prototype.call = function(dest, listeners) {
     this.bind(listeners);
     var apiKey = this.configuration['apiKey'];
@@ -244,7 +258,8 @@
     request.params = {
       apiKey : apiKey,
       apiVersion : APIdaze.version,
-      userKeys : dest
+      userKeys : dest,
+      callID: this.guid()
     };
 
     try {
