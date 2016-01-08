@@ -21,6 +21,44 @@
     this.client.sendMessage(message);
   };
 
+  Call.prototype.modify = function(action) {
+    console.log(LOG_PREFIX + "Modifying call (" + action + ") with id : " + this.callID);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    switch(action) {
+      case "hold":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      case "unhold":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      case "toggleHold":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      case "transfer":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      default:
+        console.log(LOG_PREFIX + "Unknown action " + action + ". Returning.");
+        return;
+    }
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
   Call.prototype.hangup = function() {
     console.log(LOG_PREFIX + "Hanging up call with id : " + this.callID);
     switch(this.client.configuration.type) {
@@ -59,6 +97,10 @@
         case "CALL CREATED":
           console.log(LOG_PREFIX + "Setting callID to this call to " + event.result.callID);
           this.callID = event.result.callID;
+          break;
+        case "CALL ENDED":
+          console.log(LOG_PREFIX + "Call ended");
+          this.fire({type: "hangup"});
           break;
         default:
           break;
