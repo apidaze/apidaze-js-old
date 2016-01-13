@@ -21,6 +21,45 @@
     this.client.sendMessage(message);
   };
 
+  Call.prototype.modify = function(action, destination) {
+    console.log(LOG_PREFIX + "Modifying call (" + action + ") with id : " + this.callID);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    switch(action) {
+      case "hold":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      case "unhold":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      case "toggleHold":
+        request.params = {
+          callID: this.callID,
+          action: action
+        };
+        break;
+      case "conference":
+        request.params = {
+          callID: this.callID,
+          action: action,
+          destination: destination
+        };
+        break;
+      default:
+        console.log(LOG_PREFIX + "Unknown action " + action + ". Returning.");
+        return;
+    }
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
   Call.prototype.hangup = function() {
     console.log(LOG_PREFIX + "Hanging up call with id : " + this.callID);
     switch(this.client.configuration.type) {
@@ -53,19 +92,7 @@
      * event example : {"event": {"type": "channel", "info": "ringing"}}
      * We build a new event out of this one with a single type field
      */
-    if (event.result && event.result.message) {
-      console.log(LOG_PREFIX + "Received event with message : " + event.result.message);
-      switch (event.result.message) {
-        case "CALL CREATED":
-          console.log(LOG_PREFIX + "Setting callID to this call to " + event.result.callID);
-          this.callID = event.result.callID;
-          break;
-        default:
-          break;
-      }
-    } else if (event.result && typeof event.result.subscribedChannels === "object") {
-      this.fire({type: "roominit"});
-    } else if (event.result && event.id === "conference_list_command") {
+    if (event.result && event.id === "conference_list_command") {
       var index;
       var lines = event.result.message.split('\n');
       var members = [];
@@ -74,6 +101,22 @@
         members.push({sessid: elems[2], nickname: elems[3], caller_id_number: elems[4]});
       }
       this.fire({type: "roommembers", members: members});
+    } else if (event.result && event.result.message) {
+      console.log(LOG_PREFIX + "Received event with message : " + event.result.message);
+      switch (event.result.message) {
+        case "CALL CREATED":
+          console.log(LOG_PREFIX + "Setting callID to this call to " + event.result.callID);
+          this.callID = event.result.callID;
+          break;
+        case "CALL ENDED":
+          console.log(LOG_PREFIX + "Call ended");
+          this.fire({type: "hangup"});
+          break;
+        default:
+          break;
+      }
+    } else if (event.result && typeof event.result.subscribedChannels === "object") {
+      this.fire({type: "roominit"});
     } else if (event.params && event.params.data && event.params.data.action) {
       switch (event.params.data.action) {
         case "add":
