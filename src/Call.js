@@ -21,7 +21,7 @@
     this.client.sendMessage(message);
   };
 
-  Call.prototype.modify = function(action) {
+  Call.prototype.modify = function(action, destination) {
     console.log(LOG_PREFIX + "Modifying call (" + action + ") with id : " + this.callID);
     var request = {};
     request.wsp_version = "1";
@@ -45,10 +45,11 @@
           action: action
         };
         break;
-      case "transfer":
+      case "conference":
         request.params = {
           callID: this.callID,
-          action: action
+          action: action,
+          destination: destination
         };
         break;
       default:
@@ -91,7 +92,16 @@
      * event example : {"event": {"type": "channel", "info": "ringing"}}
      * We build a new event out of this one with a single type field
      */
-    if (event.result && event.result.message) {
+    if (event.result && event.id === "conference_list_command") {
+      var index;
+      var lines = event.result.message.split('\n');
+      var members = [];
+      for (index = 0; index < lines.length - 1; index++) {
+        var elems = lines[index].split(';');
+        members.push({sessid: elems[2], nickname: elems[3], caller_id_number: elems[4]});
+      }
+      this.fire({type: "roommembers", members: members});
+    } else if (event.result && event.result.message) {
       console.log(LOG_PREFIX + "Received event with message : " + event.result.message);
       switch (event.result.message) {
         case "CALL CREATED":
@@ -107,15 +117,6 @@
       }
     } else if (event.result && typeof event.result.subscribedChannels === "object") {
       this.fire({type: "roominit"});
-    } else if (event.result && event.id === "conference_list_command") {
-      var index;
-      var lines = event.result.message.split('\n');
-      var members = [];
-      for (index = 0; index < lines.length - 1; index++) {
-        var elems = lines[index].split(';');
-        members.push({sessid: elems[2], nickname: elems[3], caller_id_number: elems[4]});
-      }
-      this.fire({type: "roommembers", members: members});
     } else if (event.params && event.params.data && event.params.data.action) {
       switch (event.params.data.action) {
         case "add":
