@@ -21,6 +21,21 @@
     this.client.sendMessage(message);
   };
 
+  Call.prototype.inviteToConference = function(destination, number){
+    console.log(LOG_PREFIX + "Inviting number " + number + " to conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "inviteToConference",
+      destination: destination,
+      number: number
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
   Call.prototype.modify = function(action, destination) {
     console.log(LOG_PREFIX + "Modifying call (" + action + ") with id : " + this.callID);
     var request = {};
