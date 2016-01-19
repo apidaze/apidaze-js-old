@@ -28,6 +28,11 @@
       this.wsurl = this.wsurl.replace("wss", "ws").replace("8082", "8081");
     }
 
+    if (client.configuration.forcewsurl && typeof client.configuration.forcewsurl !== "undefined"){
+      console.log(LOG_PREFIX + "Asked to force WebSocket URL to " + client.configuration.forcewsurl);
+      this.wsurl = client.configuration.forcewsurl;
+    }
+
     APIdaze.EventTarget.call(this);
 
     var plugin = this;
