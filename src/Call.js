@@ -36,6 +36,21 @@
     this.client.sendMessage(JSON.stringify(request));
   };
 
+  Call.prototype.kickFromConference = function(destination, uuid){
+    console.log(LOG_PREFIX + "Kicking member (" + uuid + ") out of conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "kickFromConference",
+      destination: destination,
+      uuid: uuid
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
   Call.prototype.modify = function(action, destination) {
     console.log(LOG_PREFIX + "Modifying call (" + action + ") with id : " + this.callID);
     var request = {};
