@@ -122,7 +122,14 @@
         if (json.method && json.method === "answer" && json.params && json.params.sdp) {
           console.log(LOG_PREFIX + "json.method : " + json.method);
           console.log(LOG_PREFIX + "json.params.sdp : " + json.params.sdp);
-          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:json.params.sdp}));
+          plugin.peerConnection.setRemoteDescription(new APIdaze.WebRTC.RTCSessionDescription({type:"answer", sdp:json.params.sdp}),
+              function() {
+                console.log(LOG_PREFIX + 'Remote SDP description added!');
+                plugin.client.fire({type: "audiostarted"});
+              },
+              function(error) {
+                console.log(LOG_PREFIX + 'Failed to set remote SDP : '+ error.toString());}
+              );
           console.log(LOG_PREFIX + "peerConnection Remote Description : " + plugin.peerConnection.remoteDescription.sdp);
         } else if(json.method && json.method === "ringing" && json.params && json.params.sdp) {
           console.log(LOG_PREFIX + "json.method : " + json.method);
