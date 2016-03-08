@@ -36,6 +36,79 @@
     this.client.sendMessage(JSON.stringify(request));
   };
 
+  Call.prototype.unmuteAllInConference = function(destination){
+    console.log(LOG_PREFIX + "Unmute everybody in conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "unmuteAllInConference",
+      destination: destination
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.muteAllInConference = function(destination){
+    console.log(LOG_PREFIX + "Mute everybody in conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "muteAllInConference",
+      destination: destination
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.toggleMuteInConference = function(destination, conferenceMemberID){
+    console.log(LOG_PREFIX + "Toggling mute status for member (" + conferenceMemberID + ") in conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "toggleMuteInConference",
+      destination: destination,
+      conferenceMemberID: conferenceMemberID
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.unmuteInConference = function(destination, conferenceMemberID){
+    console.log(LOG_PREFIX + "Unmuting member (" + conferenceMemberID + ") in conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "unmuteInConference",
+      destination: destination,
+      conferenceMemberID: conferenceMemberID
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.muteInConference = function(destination, conferenceMemberID){
+    console.log(LOG_PREFIX + "Muting member (" + conferenceMemberID + ") in conference " + destination);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "muteInConference",
+      destination: destination,
+      conferenceMemberID: conferenceMemberID
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
   Call.prototype.kickFromConference = function(destination, uuid){
     console.log(LOG_PREFIX + "Kicking member (" + uuid + ") out of conference " + destination);
     var request = {};
@@ -128,7 +201,7 @@
       var members = [];
       for (index = 0; index < lines.length - 1; index++) {
         var elems = lines[index].split(';');
-        members.push({sessid: elems[2], nickname: elems[3], caller_id_number: elems[4]});
+        members.push({sessid: elems[2], nickname: elems[3], caller_id_number: elems[4], conferenceMemberID: elems[0], talking_flags: elems[5]});
       }
       this.fire({type: "roommembers", members: members});
     } else if (event.result && event.result.message) {
@@ -151,16 +224,16 @@
       switch (event.params.data.action) {
         case "add":
           console.log(LOG_PREFIX + "Adding member");
-          this.fire({type: "joinedroom", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1]}});
+          this.fire({type: "joinedroom", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1], conferenceMemberID: event.params.data.data[0]}});
           break;
         case "del":
           console.log(LOG_PREFIX + "Removing member");
-          this.fire({type: "leftroom", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1]}});
+          this.fire({type: "leftroom", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1], conferenceMemberID: event.params.data.data[0]}});
           break;
         case "modify":
           console.log(LOG_PREFIX + "Modify event");
           var status = JSON.parse(event.params.data.data[4]);
-          this.fire({type: "talking", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1], talking: status.audio.talking}});
+          this.fire({type: "talking", member: {sessid: event.params.data.hashKey, nickname: event.params.data.data[2], caller_id_number: event.params.data.data[1], talking: status.audio.talking, muted: status.audio.muted, energyScore: status.audio.energyScore, conferenceMemberID: event.params.data.data[0]}});
           break;
       }
 
