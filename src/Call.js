@@ -21,7 +21,7 @@
     this.client.sendMessage(message);
   };
 
-  Call.prototype.inviteToConference = function(destination, number){
+  Call.prototype.inviteToConference = function(destination, number, caller_id_number){
     console.log(LOG_PREFIX + "Inviting number " + number + " to conference " + destination);
     var request = {};
     request.wsp_version = "1";
@@ -30,7 +30,8 @@
       callID: this.callID,
       action: "inviteToConference",
       destination: destination,
-      number: number
+      number: number,
+      caller_id_number: caller_id_number
     };
 
     this.client.sendMessage(JSON.stringify(request));
@@ -219,7 +220,9 @@
           break;
       }
     } else if (event.result && typeof event.result.subscribedChannels === "object") {
-      this.fire({type: "roominit"});
+      var temp = event.result.subscribedChannels[0];
+      var roomName = temp.substring(temp.lastIndexOf("-")+1,temp.lastIndexOf("@"));
+      this.fire({type: "roominit", roomname: roomName});
     } else if (event.params && event.params.data && event.params.data.action) {
       switch (event.params.data.action) {
         case "add":
