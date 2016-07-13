@@ -14,7 +14,7 @@
     this.roomPeerConnections = [];
     this.peerConnection = {};
     this.localSDP = "";                 // SDP obtained after creating the main RTCPeerConnection
-    this.localstream = {};
+    this.localstream = null;
     this.configuration = {};
     this.callid = "";
     this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
@@ -332,6 +332,10 @@
           APIdaze.WebRTC.attachMediaStream(container, stream);
           plugin.localstream = stream;
           plugin.status *= CONSTANTS.STATUS_LOCALSTREAM_ATTACHED;
+          var audioTracks = stream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            console.log(LOG_PREFIX + "Using Audio device: " + audioTracks[0].label);
+          }
           console.log(LOG_PREFIX + "getUserMedia called successfully");
         } catch(error) {
           throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia failed with error : " + error.message);
@@ -551,6 +555,11 @@
 
     this.peerConnection.removeStream(this.localstream);
 
+    this.localstream.getAudioTracks().forEach(function(audiotrack){
+      audiotrack.stop();
+    });
+    this.localstream = null;
+
     for (var i = 0; i < this.remoteContainers.length; i++) {
       console.log(LOG_PREFIX + "DOM element to remove : " + this.remoteContainers[i]);
       elem = document.getElementById(this.remoteContainers[i]);
@@ -572,6 +581,11 @@
     }
 
     this.peerConnection.removeStream(this.localstream);
+
+    this.localstream.getAudioTracks().forEach(function(audiotrack){
+      audiotrack.stop();
+    });
+    this.localstream = null;
 
     for (var i = 0; i < this.remoteContainers.length; i++) {
       console.log(LOG_PREFIX + "DOM element to remove : " + this.remoteContainers[i]);
