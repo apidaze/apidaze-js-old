@@ -20,6 +20,7 @@
     this.room = null;                   // ConferenceRoom object instantiated by this.joinroom
     this.callobj = null;                // Call object instantiated by this.call
     this.socket = {};
+    this.audioTrackLabel = null;
     this.status = CONSTANTS.STATUS_INIT;
     this.wsurl = client.configuration.debug ? APIdaze.dev_wsurl : APIdaze.wsurl;
 
@@ -335,7 +336,11 @@
           var audioTracks = stream.getAudioTracks();
           if (audioTracks.length > 0) {
             console.log(LOG_PREFIX + "Using Audio device: " + audioTracks[0].label);
+            plugin.audioTrackLabel = audioTracks[0].label;
+          } else {
+            throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia failed, found audioTracks.length to be less than or equal to 0!");
           }
+
           console.log(LOG_PREFIX + "getUserMedia called successfully");
         } catch(error) {
           throw new APIdaze.Exceptions.InitError(LOG_PREFIX + "getUserMedia failed with error : " + error.message);
