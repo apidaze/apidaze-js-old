@@ -12,15 +12,6 @@
 
   Call.prototype = new APIdaze.EventTarget();
 
-  Call.prototype.sendDTMF = function(dtmf) {
-    var tmp = {};
-    tmp['command'] = "senddtmf";
-    tmp['dtmf'] = dtmf;
-    var message = JSON.stringify(tmp);
-    
-    this.client.sendMessage(message);
-  };
-
   Call.prototype.inviteToConference = function(destination, number, caller_id_number){
     console.log(LOG_PREFIX + "Inviting number " + number + " to conference " + destination);
     var request = {};
@@ -120,6 +111,52 @@
       action: "kickFromConference",
       destination: destination,
       uuid: uuid
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.sendDTMF = function(digits){
+    console.log(LOG_PREFIX + "sendDTMF called, digits : " + digits);
+    console.log(LOG_PREFIX + "this.callID : " + this.callID);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "sendDTMF",
+      digits: digits
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.dualTransfer = function(aleg_exten, bleg_exten){
+    console.log(LOG_PREFIX + "dualTransfer called, aleg_exten : " + aleg_exten + " bleg_exten : " + bleg_exten);
+    console.log(LOG_PREFIX + "this.callID : " + this.callID);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "dualTransfer",
+      aleg_exten: aleg_exten,
+      bleg_exten: bleg_exten
+    };
+
+    this.client.sendMessage(JSON.stringify(request));
+  };
+
+  Call.prototype.transferBleg = function(exten){
+    console.log(LOG_PREFIX + "transferBleg called, exten : " + exten);
+    console.log(LOG_PREFIX + "this.callID : " + this.callID);
+    var request = {};
+    request.wsp_version = "1";
+    request.method = "modify";
+    request.params = {
+      callID: this.callID,
+      action: "transferBleg",
+      exten: exten
     };
 
     this.client.sendMessage(JSON.stringify(request));
