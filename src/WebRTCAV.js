@@ -56,7 +56,9 @@
         var request = {};
         request.wsp_version = "1";
         request.method = "ping";
-        request.params = {};
+        request.params = {
+          apiKey: this.client.configuration.apiKey
+        };
         this.sendMessage(JSON.stringify(request));
 
         this.client.fire({type: "connected", data: event.data});
